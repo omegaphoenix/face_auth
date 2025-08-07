@@ -124,12 +124,7 @@ fn handle_login(_model: &Func) -> anyhow::Result<()> {
     println!("Found {} registered embeddings for user '{}'", user_embeddings.len(), user_name);
     println!("Please look at the camera for authentication...");
     
-    // TODO: Implement face capture and comparison
-    // For now, just show the stored embeddings
-    for (i, record) in user_embeddings.iter().enumerate() {
-        println!("Embedding {}: ID={}, Created={}", 
-                i + 1, record.id, record.created_at);
-    }
+    
     
     Ok(())
 }

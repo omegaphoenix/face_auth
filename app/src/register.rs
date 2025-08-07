@@ -41,11 +41,7 @@ pub fn register(model: &Func, storage: &mut Box<dyn EmbeddingStorage>, user_name
     });
 
     // Main thread - samples frames for embedding computation
-    let embedding_result = embedding_sampler(model, latest_frame, storage, user_name);
-
-    // Signal both threads to shutdown
-    let _ = shutdown_tx_stream.send(());
-    let _ = shutdown_tx_display.send(());
+    let embedding_result = embedding_sampler(model, latest_frame, storage, user_name, shutdown_tx_stream, shutdown_tx_display);
 
     // Wait for threads to complete
     let _ = stream_handle.join();
@@ -73,7 +69,6 @@ fn stream_reader(
     loop {
         // Check for shutdown signal without blocking
         if shutdown_rx.try_recv().is_ok() {
-            println!("Shutdown signal received, stopping stream_reader.");
             break;
         }
 
@@ -123,7 +118,9 @@ fn embedding_sampler(
     model: &Func,
     latest_frame: Arc<Mutex<Option<DynamicImage>>>,
     storage: &mut Box<dyn EmbeddingStorage>,
-    user_name: &str
+    user_name: &str,
+    shutdown_tx_stream: mpsc::Sender<()>,
+    shutdown_tx_display: mpsc::Sender<()>
 ) -> Result<(), Box<dyn Error>> {
     let mut sample_count = 0;
     let start_time = Instant::now();
@@ -132,8 +129,10 @@ fn embedding_sampler(
     println!("Embedding sampler started - will process {} samples with {}ms intervals",
              get_num_images(), get_interval_millis());
 
-    let mut embeddings = Vec::new();
+    let mut collected_frames = Vec::new();
+    let mut processed_frames = Vec::new();
 
+    // Collect all frames first
     while sample_count < get_num_images() {
         // Wait for the sampling interval
         thread::sleep(Duration::from_millis(get_interval_millis()));
@@ -159,7 +158,7 @@ fn embedding_sampler(
 
         let processing_start = Instant::now();
 
-        println!("[*] Processing sample {} (elapsed: {:.2}s)",
+        println!("[*] Collecting sample {} (elapsed: {:.2}s)",
                  sample_count + 1, start_time.elapsed().as_secs_f32());
 
         // Process frame for embedding computation
@@ -170,53 +169,102 @@ fn embedding_sampler(
             &imagenet::IMAGENET_STD
         )?;
 
-        println!("[*] Computing embedding {} (elapsed: {:.2}s)",
-                 sample_count + 1, start_time.elapsed().as_secs_f32());
-
-        let embedding = compute_embeddings(&model, &processed_frame)?;
-        let embedding_vec = embedding.to_vec1::<f32>()?;
-        embeddings.push(embedding_vec.clone());
+        // Store the processed frame and original frame
+        processed_frames.push(processed_frame);
+        collected_frames.push(frame_to_process);
+        
         let processing_time = processing_start.elapsed();
         processing_time_total += processing_time;
 
-        println!("[*] Sample {} embedding computed: len={}, processing_time: {:.3}s",
-                sample_count + 1, embedding, processing_time.as_secs_f32());
-
-        // Store individual embedding
-        let record = EmbeddingRecord {
-            id: Uuid::new_v4().to_string(),
-            name: user_name.to_string(),
-            embedding: embedding_vec,
-            created_at: chrono::Utc::now(),
-            metadata: {
-                let mut meta = std::collections::HashMap::new();
-                meta.insert("sample_number".to_string(), (sample_count + 1).to_string());
-                meta.insert("processing_time".to_string(), processing_time.as_secs_f32().to_string());
-                meta
-            },
-        };
-        
-        if let Err(e) = storage.store_embedding(record) {
-            eprintln!("Failed to store embedding: {}", e);
-        } else {
-            println!("[*] Stored embedding for sample {}", sample_count + 1);
-        }
-
-        // Save frame
-        save_frame(&frame_to_process, &format!("sample_{}.jpg", sample_count + 1))?;
+        println!("[*] Sample {} processed and collected, processing_time: {:.3}s",
+                sample_count + 1, processing_time.as_secs_f32());
 
         sample_count += 1;
     }
 
-    let avg_processing_time = processing_time_total.as_secs_f32() / sample_count as f32;
-    println!("Embedding sampler completed {} samples in {:.2}s (avg processing: {:.3}s per sample)",
-            sample_count, start_time.elapsed().as_secs_f32(), avg_processing_time);
+    // Signal both threads to shutdown after sampling is complete
+    let _ = shutdown_tx_stream.send(());
+    let _ = shutdown_tx_display.send(());
 
-    // Compute the average embedding
-    // let avg_embedding = embeddings.iter().sum::<Vec<f32>>() / sample_count as f32;
-    // println!("Average embedding: {:?}", avg_embedding);
-
+    // Now run inference once for all collected frames
+    println!("[*] Running batch inference for {} samples (elapsed: {:.2}s)",
+             processed_frames.len(), start_time.elapsed().as_secs_f32());
     
+    let inference_start = Instant::now();
+    let mut embeddings = Vec::new();
+    
+    // Stack all processed frames into a batch tensor and compute embeddings in one call
+    {
+        use candle_core::Tensor;
+        // processed_frames is Vec<Tensor>
+        let batch = Tensor::stack(&processed_frames, 0)?;
+        println!("[*] Computing embeddings for batch of {} samples", processed_frames.len());
+        let batch_embeddings = compute_embeddings(&model, &batch)?;
+        let batch_embeddings_vec = batch_embeddings.to_vec2::<f32>()?;
+        for (i, embedding_vec) in batch_embeddings_vec.into_iter().enumerate() {
+            println!("[*] Got embedding {} of {} (batch inference)", i + 1, processed_frames.len());
+            embeddings.push(embedding_vec);
+        }
+    }
+    
+    let inference_time = inference_start.elapsed();
+    println!("[*] Batch inference completed in {:.3}s (avg: {:.3}s per sample)",
+             inference_time.as_secs_f32(), 
+             inference_time.as_secs_f32() / embeddings.len() as f32);
+
+    // Save all frames
+    for (i, frame) in collected_frames.iter().enumerate() {
+        save_frame(frame, &format!("sample_{}.jpg", i + 1))?;
+    }
+
+    // Compute and store the average embedding
+    if !embeddings.is_empty() {
+        println!("[*] Computing average embedding from {} samples", embeddings.len());
+        
+        let embedding_length = embeddings[0].len();
+        let mut avg_embedding = vec![0.0f32; embedding_length];
+        
+        // Sum all embeddings
+        for embedding in &embeddings {
+            for (i, &value) in embedding.iter().enumerate() {
+                avg_embedding[i] += value;
+            }
+        }
+        
+        // Divide by number of embeddings to get average
+        for value in &mut avg_embedding {
+            *value /= embeddings.len() as f32;
+        }
+        
+        // Store the average embedding record
+        let avg_record = EmbeddingRecord {
+            id: Uuid::new_v4().to_string(),
+            name: user_name.to_string(),
+            embedding: avg_embedding.clone(),
+            created_at: chrono::Utc::now(),
+            metadata: {
+                let mut meta = std::collections::HashMap::new();
+                meta.insert("type".to_string(), "average".to_string());
+                meta.insert("sample_count".to_string(), embeddings.len().to_string());
+                meta.insert("batch_inference".to_string(), "true".to_string());
+                meta.insert("inference_time".to_string(), inference_time.as_secs_f32().to_string());
+                meta
+            },
+        };
+        
+        if let Err(e) = storage.store_embedding(avg_record) {
+            eprintln!("Failed to store average embedding: {}", e);
+        } else {
+            println!("[*] Stored average embedding (length: {}, from {} samples)", 
+                    avg_embedding.len(), embeddings.len());
+        }
+    }
+
+    let total_time = start_time.elapsed();
+    let avg_processing_time = processing_time_total.as_secs_f32() / sample_count as f32;
+    println!("Embedding sampler completed {} samples in {:.2}s (avg processing: {:.3}s per sample, inference: {:.3}s)",
+            sample_count, total_time.as_secs_f32(), avg_processing_time, inference_time.as_secs_f32());
+
     Ok(())
 }
 
@@ -234,7 +282,6 @@ fn display_processor(
     while window.is_open() && !window.is_key_down(Key::Escape) {
         // Check if we should shutdown (non-blocking)
         if shutdown_rx.try_recv().is_ok() {
-            println!("Embedding processing completed - closing display window");
             break;
         }
 

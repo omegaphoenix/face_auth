@@ -8,7 +8,14 @@ pub fn normalize_l2(v: &Tensor) -> Result<Tensor> {
 }
 
 pub fn compute_embeddings(model: &Func, image: &Tensor) -> Result<Tensor> {
-    let embeddings = model.forward(&image.unsqueeze(0)?)?;
+    // If image is not a batch, unsqueeze it, else use as is
+    let input = if image.dim(0)? == 3 {
+        image.unsqueeze(0)?
+    } else {
+        image.clone()
+    };
+
+    let embeddings = model.forward(&input)?;
     let norm_emb = normalize_l2(&embeddings)?;
     Ok(norm_emb)
 }
