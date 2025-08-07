@@ -1,9 +1,6 @@
-use clap::{Parser, ValueEnum};
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{Module, VarBuilder, Func};
 use anyhow::Result;
-
-use crate::imagenet;
 use candle_transformers::models::convnext;
 
 pub fn normalize_l2(v: &Tensor) -> Result<Tensor> {

@@ -6,14 +6,16 @@ use reqwest::blocking::Client;
 use crate::config::*;
 use crate::image_utils::imagenet;
 use crate::embeddings::embeddings::compute_embeddings;
+use crate::storage::{EmbeddingRecord, EmbeddingStorage};
 use candle_nn::Func;
+use uuid::Uuid;
 
 use minifb::{Window, WindowOptions, Key};
 use std::io::Read;
 use image::{DynamicImage, ImageFormat};
 
-pub fn register(model: &Func) -> Result<(), Box<dyn Error>> {
-    println!("[*] Registering from: {}", STREAM_URL);
+pub fn register(model: &Func, storage: &mut Box<dyn EmbeddingStorage>, user_name: &str) -> Result<(), Box<dyn Error>> {
+    println!("[*] Registering user '{}' from: {}", user_name, get_stream_url());
 
     // Shared latest frame for display and sampling
     let latest_frame = Arc::new(Mutex::new(None::<DynamicImage>));
@@ -39,7 +41,7 @@ pub fn register(model: &Func) -> Result<(), Box<dyn Error>> {
     });
 
     // Main thread - samples frames for embedding computation
-    let embedding_result = embedding_sampler(model, latest_frame);
+    let embedding_result = embedding_sampler(model, latest_frame, storage, user_name);
 
     // Signal both threads to shutdown
     let _ = shutdown_tx_stream.send(());
@@ -60,9 +62,10 @@ fn stream_reader(
         .timeout(Duration::from_secs(30))
         .build()?;
 
-    let mut response = client.get(STREAM_URL).send()?;
+    let mut response = client.get(get_stream_url()).send()?;
     let mut buffer = Vec::with_capacity(300_000);
-    let mut chunk_buffer = [0u8; CHUNK_SIZE];
+    let chunk_size = get_chunk_size();
+    let mut chunk_buffer = vec![0u8; chunk_size];
     let mut frame_count = 0;
 
     println!("Stream reader started...");
@@ -118,20 +121,22 @@ fn stream_reader(
 
 fn embedding_sampler(
     model: &Func,
-    latest_frame: Arc<Mutex<Option<DynamicImage>>>
+    latest_frame: Arc<Mutex<Option<DynamicImage>>>,
+    storage: &mut Box<dyn EmbeddingStorage>,
+    user_name: &str
 ) -> Result<(), Box<dyn Error>> {
     let mut sample_count = 0;
     let start_time = Instant::now();
     let mut processing_time_total = Duration::default();
 
     println!("Embedding sampler started - will process {} samples with {}ms intervals",
-             NUM_IMAGES, INTERVAL_MILLIS);
+             get_num_images(), get_interval_millis());
 
     let mut embeddings = Vec::new();
 
-    while sample_count < NUM_IMAGES {
+    while sample_count < get_num_images() {
         // Wait for the sampling interval
-        thread::sleep(Duration::from_millis(INTERVAL_MILLIS));
+        thread::sleep(Duration::from_millis(get_interval_millis()));
 
         // Get the current latest frame
         let frame_to_process = {
@@ -169,12 +174,33 @@ fn embedding_sampler(
                  sample_count + 1, start_time.elapsed().as_secs_f32());
 
         let embedding = compute_embeddings(&model, &processed_frame)?;
-        embeddings.push(embedding.to_vec2::<f32>()?);
+        let embedding_vec = embedding.to_vec1::<f32>()?;
+        embeddings.push(embedding_vec.clone());
         let processing_time = processing_start.elapsed();
         processing_time_total += processing_time;
 
         println!("[*] Sample {} embedding computed: len={}, processing_time: {:.3}s",
                 sample_count + 1, embedding, processing_time.as_secs_f32());
+
+        // Store individual embedding
+        let record = EmbeddingRecord {
+            id: Uuid::new_v4().to_string(),
+            name: user_name.to_string(),
+            embedding: embedding_vec,
+            created_at: chrono::Utc::now(),
+            metadata: {
+                let mut meta = std::collections::HashMap::new();
+                meta.insert("sample_number".to_string(), (sample_count + 1).to_string());
+                meta.insert("processing_time".to_string(), processing_time.as_secs_f32().to_string());
+                meta
+            },
+        };
+        
+        if let Err(e) = storage.store_embedding(record) {
+            eprintln!("Failed to store embedding: {}", e);
+        } else {
+            println!("[*] Stored embedding for sample {}", sample_count + 1);
+        }
 
         // Save frame
         save_frame(&frame_to_process, &format!("sample_{}.jpg", sample_count + 1))?;

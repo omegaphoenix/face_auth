@@ -61,7 +61,9 @@ uvicorn camera_stream_api:app --host 0.0.0.0 --port 8000
 ### API Endpoints
 
 - `GET /`: Get server status and camera information
+- `GET /health`: Health check endpoint
 - `GET /video_feed`: Stream video feed
+- `GET /test_frame`: Test single frame capture (returns JPEG image)
 - `GET /camera_info`: Get detailed camera configuration information
 - `GET /switch_camera?source={opencv|libcamera}`: Switch between camera sources
 
@@ -100,6 +102,14 @@ uvicorn camera_stream_api:app --host 0.0.0.0 --port 8000
 
 ## Troubleshooting
 
+### Testing Your Camera Setup
+First, run the test script to diagnose camera issues:
+```bash
+python test_camera.py
+```
+
+This script will test both OpenCV and libcamera configurations and provide detailed feedback.
+
 ### Libcamera Issues
 1. **Import Error**: Make sure `picamera2` is installed:
    ```bash
@@ -116,6 +126,12 @@ uvicorn camera_stream_api:app --host 0.0.0.0 --port 8000
    vcgencmd get_camera
    ```
 
+4. **Frame Capture Failures**: If you see "Failed to get frame from camera" warnings:
+   - The camera may need time to stabilize after startup
+   - Try increasing the buffer count in config.env: `LIBCAMERA_BUFFER_COUNT=8`
+   - Reduce frame rate: `LIBCAMERA_FRAME_RATE=15`
+   - Check if another application is using the camera
+
 ### OpenCV Issues
 1. **Camera Not Found**: Try different device numbers (0, 1, 2, etc.)
 2. **Permission Issues**: Make sure your user has access to video devices
@@ -124,6 +140,8 @@ uvicorn camera_stream_api:app --host 0.0.0.0 --port 8000
 - Check the server logs for detailed error messages
 - Ensure your camera is not being used by another application
 - Try restarting the server after changing camera sources
+- Use the `/health` endpoint to check camera status: `curl http://localhost:8000/health`
+- Test single frame capture: `curl http://localhost:8000/test_frame -o test.jpg`
 
 ## Development
 

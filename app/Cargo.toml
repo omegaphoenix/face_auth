@@ -7,6 +7,9 @@ edition = "2021"
 name = "storage_demo"
 path = "examples/storage_demo.rs"
 
+[profile.dev.package.gemm-f16]
+opt-level = 3
+
 [dependencies]
 reqwest = { version = "0.11", features = ["blocking"] }
 candle-core = "0.9.1"
