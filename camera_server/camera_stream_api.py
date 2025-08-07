@@ -20,6 +20,8 @@ app = FastAPI()
 CAMERA_SOURCE = os.getenv("CAMERA_SOURCE", "opencv")  # "opencv" or "libcamera"
 OPENCV_DEVICE = int(os.getenv("OPENCV_DEVICE", "0"))
 LIBCAMERA_DEVICE = os.getenv("LIBCAMERA_DEVICE", "/dev/video0")
+LIBCAMERA_BUFFER_COUNT = int(os.getenv("LIBCAMERA_BUFFER_COUNT", "6"))
+LIBCAMERA_FRAME_RATE = int(os.getenv("LIBCAMERA_FRAME_RATE", "30"))
 
 # Global camera objects
 opencv_camera = None
@@ -48,12 +50,21 @@ def init_libcamera():
         from picamera2.outputs import FileOutput
         
         libcamera_camera = Picamera2()
+        
+        # Create a more robust configuration
+        frame_duration = int(1000000 / LIBCAMERA_FRAME_RATE)  # Convert to microseconds
         config = libcamera_camera.create_preview_configuration(
-            main={"size": (640, 480)},
-            buffer_count=4
+            main={"size": (640, 480), "format": "RGB888"},
+            buffer_count=LIBCAMERA_BUFFER_COUNT,
+            controls={"FrameDurationLimits": (frame_duration, frame_duration)}
         )
         libcamera_camera.configure(config)
         libcamera_camera.start()
+        
+        # Wait a moment for the camera to stabilize
+        import time
+        time.sleep(1)
+        
         logger.info("Libcamera initialized successfully")
         return True
     except ImportError:
@@ -81,12 +92,35 @@ def get_frame_libcamera():
         return None
     
     try:
+        # Try the primary capture method
         frame = libcamera_camera.capture_array()
+        if frame is None or frame.size == 0:
+            logger.warning("Empty frame received from libcamera")
+            return None
+        
         # Convert from RGB to BGR for OpenCV compatibility
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         return frame
     except Exception as e:
-        logger.error(f"Error capturing frame from libcamera: {e}")
+        logger.warning(f"Error capturing frame from libcamera: {e}")
+        # Try alternative capture method if available
+        try:
+            # Alternative: capture to memory and convert
+            import io
+            import numpy as np
+            from PIL import Image
+            
+            # Capture as JPEG to memory
+            jpeg_data = libcamera_camera.capture_image()
+            if jpeg_data:
+                # Convert JPEG to numpy array
+                image = Image.open(io.BytesIO(jpeg_data))
+                frame = np.array(image)
+                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                return frame
+        except Exception as alt_e:
+            logger.warning(f"Alternative capture method also failed: {alt_e}")
+        
         return None
 
 def get_frame():
@@ -98,16 +132,21 @@ def get_frame():
 
 def gen_frames():
     """Generate video frames"""
+    import time
+    
     while True:
         frame = get_frame()
         if frame is None:
             logger.warning("Failed to get frame from camera")
+            # Add a small delay to prevent overwhelming the camera
+            time.sleep(0.1)
             continue
         
         try:
             ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
             if not ret:
                 logger.warning("Failed to encode frame")
+                time.sleep(0.1)
                 continue
             
             frame_bytes = buffer.tobytes()
@@ -115,6 +154,7 @@ def gen_frames():
                    b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
         except Exception as e:
             logger.error(f"Error processing frame: {e}")
+            time.sleep(0.1)
             continue
 
 @app.on_event("startup")
@@ -150,7 +190,23 @@ def index():
         "message": "Camera streaming server is running.",
         "camera_source": CAMERA_SOURCE,
         "opencv_device": OPENCV_DEVICE if CAMERA_SOURCE.lower() == "opencv" else None,
-        "libcamera_device": LIBCAMERA_DEVICE if CAMERA_SOURCE.lower() == "libcamera" else None
+        "libcamera_device": LIBCAMERA_DEVICE if CAMERA_SOURCE.lower() == "libcamera" else None,
+        "status": "healthy" if (opencv_camera is not None and opencv_camera.isOpened()) or libcamera_camera is not None else "unhealthy"
+    }
+
+@app.get("/health")
+def health_check():
+    """Health check endpoint"""
+    camera_working = False
+    if CAMERA_SOURCE.lower() == "opencv":
+        camera_working = opencv_camera is not None and opencv_camera.isOpened()
+    elif CAMERA_SOURCE.lower() == "libcamera":
+        camera_working = libcamera_camera is not None
+    
+    return {
+        "status": "healthy" if camera_working else "unhealthy",
+        "camera_source": CAMERA_SOURCE,
+        "camera_working": camera_working
     }
 
 @app.get("/video_feed")
@@ -164,9 +220,28 @@ def camera_info():
         "camera_source": CAMERA_SOURCE,
         "opencv_device": OPENCV_DEVICE,
         "libcamera_device": LIBCAMERA_DEVICE,
+        "libcamera_buffer_count": LIBCAMERA_BUFFER_COUNT,
+        "libcamera_frame_rate": LIBCAMERA_FRAME_RATE,
         "opencv_available": opencv_camera is not None and opencv_camera.isOpened(),
         "libcamera_available": libcamera_camera is not None
     }
+
+@app.get("/test_frame")
+def test_frame():
+    """Test if we can capture a single frame from the camera"""
+    frame = get_frame()
+    if frame is None:
+        return {"success": False, "error": "Failed to capture frame"}
+    
+    try:
+        ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+        if not ret:
+            return {"success": False, "error": "Failed to encode frame"}
+        
+        frame_bytes = buffer.tobytes()
+        return Response(content=frame_bytes, media_type="image/jpeg")
+    except Exception as e:
+        return {"success": False, "error": f"Error processing frame: {e}"}
 
 @app.get("/switch_camera")
 def switch_camera(source: str = Query(..., description="Camera source: 'opencv' or 'libcamera'")):
