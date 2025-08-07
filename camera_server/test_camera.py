@@ -58,10 +58,7 @@ def test_libcamera():
         print("✅ Picamera2 object created")
         
         # Create configuration
-        config = camera.create_preview_configuration(
-            main={"size": (640, 480), "format": "RGB888"},
-            buffer_count=6
-        )
+        config = camera.create_preview_configuration()
         camera.configure(config)
         print("✅ Camera configured")
         
