@@ -46,24 +46,28 @@ def init_libcamera():
     global libcamera_camera
     try:
         from picamera2 import Picamera2
-        from picamera2.encoders import JpegEncoder
-        from picamera2.outputs import FileOutput
         
         libcamera_camera = Picamera2()
         
-        # Create a more robust configuration
-        frame_duration = int(1000000 / LIBCAMERA_FRAME_RATE)  # Convert to microseconds
+        # Create a simple configuration without problematic attributes
         config = libcamera_camera.create_preview_configuration(
             main={"size": (640, 480), "format": "RGB888"},
-            buffer_count=LIBCAMERA_BUFFER_COUNT,
-            controls={"FrameDurationLimits": (frame_duration, frame_duration)}
+            buffer_count=LIBCAMERA_BUFFER_COUNT
         )
+        
+        # Set frame rate through controls if supported
+        try:
+            frame_duration = int(1000000 / LIBCAMERA_FRAME_RATE)  # Convert to microseconds
+            config["controls"] = {"FrameDurationLimits": (frame_duration, frame_duration)}
+        except Exception as control_e:
+            logger.warning(f"Could not set frame rate controls: {control_e}")
+        
         libcamera_camera.configure(config)
         libcamera_camera.start()
         
         # Wait a moment for the camera to stabilize
         import time
-        time.sleep(1)
+        time.sleep(2)
         
         logger.info("Libcamera initialized successfully")
         return True
@@ -103,24 +107,6 @@ def get_frame_libcamera():
         return frame
     except Exception as e:
         logger.warning(f"Error capturing frame from libcamera: {e}")
-        # Try alternative capture method if available
-        try:
-            # Alternative: capture to memory and convert
-            import io
-            import numpy as np
-            from PIL import Image
-            
-            # Capture as JPEG to memory
-            jpeg_data = libcamera_camera.capture_image()
-            if jpeg_data:
-                # Convert JPEG to numpy array
-                image = Image.open(io.BytesIO(jpeg_data))
-                frame = np.array(image)
-                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                return frame
-        except Exception as alt_e:
-            logger.warning(f"Alternative capture method also failed: {alt_e}")
-        
         return None
 
 def get_frame():
