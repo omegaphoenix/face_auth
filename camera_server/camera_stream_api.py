@@ -5,6 +5,10 @@ import numpy as np
 import os
 from typing import Optional
 import logging
+from dotenv import load_dotenv
+
+# Load environment variables from config.env
+load_dotenv('config.env')
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
