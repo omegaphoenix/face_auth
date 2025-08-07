@@ -45,15 +45,13 @@ def init_libcamera():
     """Initialize libcamera using picamera2"""
     global libcamera_camera
     try:
-        from picamera2 import Picamera2
+        from picamera2 import Picamera2, Preview
         
-        libcamera_camera = Picamera2()
+        tuning = Picamera2.load_tuning_file("imx708_noir.json")
+        libcamera_camera = Picamera2(tuning=tuning)
         
         # Create a simple configuration without problematic attributes
-        config = libcamera_camera.create_preview_configuration(
-            main={"size": (640, 480), "format": "RGB888"},
-            buffer_count=LIBCAMERA_BUFFER_COUNT
-        )
+        config = libcamera_camera.create_preview_configuration()
         
         # Set frame rate through controls if supported
         try:
