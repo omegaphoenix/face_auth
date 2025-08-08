@@ -5,7 +5,10 @@ mod image_utils;
 
 mod embeddings;
 mod config;
+mod camera;
 use embeddings::embeddings::build_model;
+mod login;
+use login::login;
 mod register;
 use register::register;
 mod storage;
@@ -90,7 +93,7 @@ fn handle_register(model: &Func) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn handle_login(_model: &Func) -> anyhow::Result<()> {
+fn handle_login(model: &Func) -> anyhow::Result<()> {
     println!("Login process started...");
     
     // Get user name
@@ -109,22 +112,11 @@ fn handle_login(_model: &Func) -> anyhow::Result<()> {
     let storage_config = config::get_storage_config();
     let storage = storage_config.create_storage()?;
     
-    // Get stored embeddings for this user
-    let all_embeddings = storage.get_all_embeddings()?;
-    let user_embeddings: Vec<_> = all_embeddings
-        .into_iter()
-        .filter(|record| record.name == user_name)
-        .collect();
-    
-    if user_embeddings.is_empty() {
-        println!("No registered embeddings found for user '{}'", user_name);
-        return Ok(());
+    match login(model, &storage, user_name) {
+        Ok(true) => println!("Login successful!"),
+        Ok(false) => println!("Login failed."),
+        Err(e) => eprintln!("An error occurred during login: {}", e),
     }
-    
-    println!("Found {} registered embeddings for user '{}'", user_embeddings.len(), user_name);
-    println!("Please look at the camera for authentication...");
-    
-    
     
     Ok(())
 }
