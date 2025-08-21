@@ -1,0 +1,14 @@
+[package]
+name = "ex01_image_processing"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+candle-core = "0.9.1"
+image = "0.25.6"
+
+[dev-dependencies]
+face-auth = { path = "../../app" }
+
+

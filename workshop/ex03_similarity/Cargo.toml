@@ -1,0 +1,11 @@
+[package]
+name = "ex03_similarity"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+candle-core = "0.9.1"
+face-auth = { path = "../../app" }
+
+

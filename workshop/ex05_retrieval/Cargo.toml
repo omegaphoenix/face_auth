@@ -1,0 +1,11 @@
+[package]
+name = "ex05_retrieval"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+face-auth = { path = "../../app" }
+uuid = { version = "1.0", features = ["v4"] }
+
+
