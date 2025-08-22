@@ -1,14 +1,14 @@
 use anyhow::Result;
-use candle_core::Tensor;
-use candle_nn::Func;
+use candle_nn::{Module, VarBuilder, Func};
+use candle_transformers::models::convnext;
+use candle_core::{DType, Device, Tensor};
 
 /// Exercise: Build the ConvNeXt model from the main app and compute a single embedding.
-/// Implement these using `face_auth::embeddings::embeddings` helpers.
-pub fn build_model() -> Result<Func> {
-    unimplemented!("TODO: return model built from face_auth config")
+pub fn build_model() -> Result<Func<'static>> {
+    unimplemented!("TODO: build the convnext model using candle_transformers::models::convnext")
 }
 
-pub fn compute_embedding(_model: &Func, _image: &Tensor) -> Result<Tensor> {
+pub fn compute_embedding(model: &Func, image: &Tensor) -> Result<Tensor> {
     unimplemented!("TODO: call compute_embeddings on a preprocessed image tensor")
 }
 
@@ -19,7 +19,6 @@ mod tests {
     use face_auth::image_utils::imagenet;
 
     #[test]
-    #[ignore]
     fn embedding_computes() -> Result<()> {
         let model = build_model()?;
         let img = imagenet::load_image224("../../app/test_images/brad1.png")?.to_device(&Device::Cpu)?;

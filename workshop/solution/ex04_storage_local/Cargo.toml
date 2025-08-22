@@ -1,5 +1,5 @@
 [package]
-name = "ex04_storage_local"
+name = "ex04_storage_local_solution"
 version = "0.1.0"
 edition = "2021"
 

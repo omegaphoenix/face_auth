@@ -3,14 +3,7 @@ use candle_core::{DType, Device, Tensor};
 use candle_nn::{Module, VarBuilder, Func};
 use candle_transformers::models::convnext;
 
-/// Normalize tensor using L2 normalization
-fn normalize_l2(v: &Tensor) -> Result<Tensor> {
-    Ok(v.broadcast_div(&v.sqr()?.sum_keepdim(1)?.sqrt()?)?)
-}
-
-/// Exercise: Build the ConvNeXt model from the main app and compute a single embedding.
-/// Implement these using `face_auth::embeddings::embeddings` helpers.
-pub fn build_model() -> Result<Func> {
+pub fn build_model() -> Result<Func<'static>> {
     let device = &Device::Cpu;
     let model_file = {
         let api = hf_hub::api::sync::Api::new()?;
@@ -33,6 +26,5 @@ pub fn compute_embedding(model: &Func, image: &Tensor) -> Result<Tensor> {
     };
 
     let embeddings = model.forward(&input)?;
-    let norm_emb = normalize_l2(&embeddings)?;
-    Ok(norm_emb)
+    Ok(embeddings)
 }

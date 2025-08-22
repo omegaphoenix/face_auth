@@ -5,7 +5,10 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
-face-auth = { path = "../../app" }
+chrono = "0.4.41"
 uuid = { version = "1.0", features = ["v4"] }
+ex04_storage_local_solution = { path = "../solution/ex04_storage_local" }
+ex03_similarity_solution = { path = "../solution/ex03_similarity" }
+
 
 

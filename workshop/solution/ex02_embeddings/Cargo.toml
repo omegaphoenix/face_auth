@@ -1,5 +1,5 @@
 [package]
-name = "ex02_embeddings"
+name = "ex02_embeddings_solution"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,6 +9,5 @@ candle-core = "0.9.1"
 candle-nn = "0.9.1"
 candle-transformers = "0.9.1"
 hf-hub = "0.3"
-face-auth = { path = "../../app" }
 
 

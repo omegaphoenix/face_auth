@@ -5,7 +5,9 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
+candle-nn = "0.9.1"
 candle-core = "0.9.1"
 face-auth = { path = "../../app" }
+ex02_embeddings_solution = { path = "../solution/ex02_embeddings" }
 
 

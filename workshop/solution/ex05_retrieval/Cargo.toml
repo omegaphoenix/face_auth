@@ -1,13 +1,11 @@
 [package]
-name = "ex04_storage_local"
+name = "ex05_retrieval_solution"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+ex03_similarity = { path = "../ex03_similarity" }
+ex04_storage_local = { path = "../ex04_storage_local" }
 uuid = { version = "1.0", features = ["v4"] }
-
-
