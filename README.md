@@ -4,19 +4,21 @@ A comprehensive face authentication system built with Rust and Python that combi
 
 ## Overview
 
-Face Auth is a modular face authentication system consisting of two main components:
+Face Auth is a modular face authentication system consisting of three main components:
 
 1. **App** - A Rust-based face authentication engine that handles face embedding generation, storage, and user authentication
-2. **Camera Server** - A Python FastAPI server that provides camera streaming capabilities with support for multiple camera sources
+2. **Camera Server** - A Python FastAPI server that provides camera streaming capabilities with support for multiple camera sources  
+3. **Workshop** - Educational exercises for learning face recognition concepts and implementation techniques
 
 ## Features
 
 - 🎯 **Real-time Face Authentication** - Fast face recognition using ConvNeXt models
 - 📹 **Multiple Camera Sources** - Support for OpenCV, libcamera, and custom video streams
-- 💾 **Flexible Storage** - Choose between local JSON storage or Qdrant vector database
+- 💾 **Local File Storage** - Simple JSON-based storage for face embeddings
 - 🌐 **Web API** - RESTful camera streaming API with dynamic camera switching
 - 🔧 **Easy Configuration** - YAML-based configuration for all components
 - 🚀 **Cross-platform** - Works on Windows, Linux, and Raspberry Pi
+- 📚 **Educational Workshop** - Step-by-step exercises for learning face recognition
 
 ## Architecture
 
@@ -27,14 +29,14 @@ Face Auth is a modular face authentication system consisting of two main compone
 │                 │                  │                  │
 │ • FastAPI       │                  │ • Face Detection │
 │ • OpenCV        │                  │ • Embedding Gen  │
-│ • libcamera     │                  │ • Storage        │
+│ • libcamera     │                  │ • Authentication │
 └─────────────────┘                  └──────────────────┘
          │                                      │
          ▼                                      ▼
 ┌─────────────────┐                  ┌──────────────────┐
-│   USB Camera    │                  │     Storage      │
-│   Raspberry Pi  │                  │ • Local JSON     │
-│   Webcam        │                  │ • Qdrant DB      │
+│   USB Camera    │                  │   Local Storage  │
+│   Raspberry Pi  │                  │ • JSON Files     │
+│   Webcam        │                  │ • Face Embeddings│
 └─────────────────┘                  └──────────────────┘
 ```
 
@@ -96,13 +98,12 @@ The core authentication engine built with Rust for performance and safety.
 
 **Key Features:**
 - ConvNeXt-based face embedding generation
-- Support for local file and Qdrant vector database storage
+- Local file storage for face embeddings
 - Real-time face capture and processing
 - High-performance face matching algorithms
 
 **Dependencies:**
 - `candle-core` & `candle-nn` - Neural network framework
-- `qdrant-client` - Vector database integration
 - `reqwest` - HTTP client for video streaming
 - `image` & `minifb` - Image processing and display
 
@@ -110,12 +111,9 @@ The core authentication engine built with Rust for performance and safety.
 ```yaml
 # config.yaml
 storage:
-  type: "local_file"  # or "qdrant"
+  type: "local_file"
   local_file:
     path: "embeddings.json"
-  qdrant:
-    url: "http://localhost:6333"
-    collection_name: "face_embeddings"
 
 stream:
   url: "http://localhost:8000/video_feed"
@@ -150,35 +148,34 @@ A FastAPI-based streaming server that provides camera access with multiple sourc
 - `GET /camera_info` - Detailed camera configuration
 - `GET /switch_camera?source={opencv|libcamera}` - Switch camera source
 
+### Workshop (Educational)
+
+A collection of progressive exercises designed to teach face recognition concepts and implementation.
+
+**Exercises:**
+- **Exercise 01** - Image Processing - Loading and normalizing images for neural networks
+- **Exercise 02** - Embeddings - Computing face embeddings using ConvNeXt models
+- **Exercise 03** - Similarity - Implementing cosine similarity for face matching
+- **Exercise 04** - Storage - Building local file storage for face embeddings  
+- **Exercise 05** - Retrieval - Implementing k-nearest neighbor search
+
+**Structure:**
+- Each exercise includes skeleton code with TODO comments
+- Solutions provided for reference and verification
+- Documentation and explanations
+- Progressive difficulty building core concepts
+
 ## Installation & Configuration
 
-### Local File Storage (Default)
+### Storage
 
-No additional setup required. Face embeddings are stored in `embeddings.json`.
+Face embeddings are stored locally in JSON format (`embeddings.json` by default).
 
-**Pros:** Simple, no dependencies, works offline  
-**Cons:** Limited scalability, no advanced search features  
-**Best for:** Development, testing, small-scale deployments
-
-### Qdrant Vector Database
-
-For production deployments with scalable vector search capabilities.
-
-```bash
-# Start Qdrant with Docker
-docker run -p 6333:6333 qdrant/qdrant
-
-# Update app/config.yaml
-storage:
-  type: "qdrant"
-  qdrant:
-    url: "http://localhost:6333"
-    collection_name: "face_embeddings"
-```
-
-**Pros:** Scalable, advanced vector search, cloud-ready  
-**Cons:** Requires Qdrant server setup  
-**Best for:** Production deployments, large-scale applications
+**Benefits:**
+- Simple setup with no external dependencies  
+- Works offline and is easy to backup
+- Human-readable format for debugging
+- Suitable for development, testing, and small-scale deployments
 
 ### Camera Configuration
 
@@ -221,7 +218,13 @@ Face Auth/
 │   ├── camera_stream_api.py # FastAPI application
 │   ├── requirements.txt    # Python dependencies
 │   └── config.env         # Environment configuration
-└── mediapipe-rs/          # MediaPipe Rust library
+└── workshop/              # Educational exercises
+    ├── ex01_image_processing/ # Exercise 1: Image loading and normalization
+    ├── ex02_embeddings/       # Exercise 2: Face embedding generation
+    ├── ex03_similarity/       # Exercise 3: Cosine similarity computation
+    ├── ex04_storage_local/    # Exercise 4: Local file storage implementation
+    ├── ex05_retrieval/        # Exercise 5: k-NN search and retrieval
+    └── solution/              # Reference solutions for all exercises
 ```
 
 ### Building from Source
@@ -283,9 +286,9 @@ cargo run --example storage_demo
    - Capture multiple face samples during registration
    - Keep face centered and looking at camera
 
-2. **Storage connection issues:**
-   - For Qdrant: Verify server is running and accessible
-   - For local storage: Check file permissions
+2. **Storage issues:**
+   - Check file permissions for local storage
+   - Verify the storage directory exists or can be created
 
 3. **Video stream errors:**
    - Verify camera server is running on correct port
@@ -317,10 +320,9 @@ This project is licensed under the MIT License - see the individual component RE
 
 ## Acknowledgments
 
-- Built with [MediaPipe-rs](https://github.com/WasmEdge/mediapipe-rs) for computer vision tasks
 - Uses [Candle](https://github.com/huggingface/candle) framework for neural network inference
 - Camera streaming powered by [FastAPI](https://fastapi.tiangolo.com/)
-- Vector storage with [Qdrant](https://qdrant.tech/)
+- Image processing with [OpenCV](https://opencv.org/) and Rust [image](https://crates.io/crates/image) crate
 
 ## Support
 
