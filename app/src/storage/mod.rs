@@ -1,5 +1,4 @@
 pub mod local_file;
-pub mod qdrant_storage;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -24,11 +23,6 @@ pub trait EmbeddingStorage {
 
 pub enum StorageType {
     LocalFile(String),
-    Qdrant {
-        url: String,
-        collection_name: String,
-        api_key: Option<String>,
-    },
 }
 
 impl StorageType {
@@ -36,10 +30,6 @@ impl StorageType {
         match self {
             StorageType::LocalFile(path) => {
                 let storage = local_file::LocalFileStorage::new(path)?;
-                Ok(Box::new(storage))
-            }
-            StorageType::Qdrant { url, collection_name, api_key } => {
-                let storage = qdrant_storage::QdrantStorage::new(url, collection_name, api_key)?;
                 Ok(Box::new(storage))
             }
         }

@@ -1,13 +1,11 @@
 # Face Authentication System
 
-A Rust-based face authentication system that supports both local file storage and Qdrant vector database for storing face embeddings.
+A Rust-based face authentication system using local file storage for storing face embeddings.
 
 ## Features
 
 - **Face Embedding Generation**: Uses ConvNeXt model to generate high-quality face embeddings
-- **Multiple Storage Options**: 
-  - Local JSON file storage (default)
-  - Qdrant vector database storage
+- **Local File Storage**: Stores embeddings in JSON format for simplicity
 - **Real-time Face Registration**: Capture and store face embeddings from video stream
 - **User Authentication**: Compare captured faces with stored embeddings
 - **Configurable**: Easy configuration via YAML file
@@ -22,26 +20,15 @@ A Rust-based face authentication system that supports both local file storage an
 
 ## Configuration
 
-The system uses `config.yaml` for configuration. You can choose between two storage types:
+The system uses `config.yaml` for configuration:
 
-### Local File Storage (Default)
+### Storage Configuration
 
 ```yaml
 storage:
   type: "local_file"
   local_file:
     path: "embeddings.json"
-```
-
-### Qdrant Storage
-
-```yaml
-storage:
-  type: "qdrant"
-  qdrant:
-    url: "http://localhost:6333"
-    collection_name: "face_embeddings"
-    api_key: null  # Set to your API key if using Qdrant Cloud
 ```
 
 ## Usage
@@ -72,35 +59,13 @@ cargo run
 3. Look at the camera for authentication
 4. The system will compare your face with stored embeddings
 
-## Storage Options
+## Storage
 
-### Local File Storage
+The system uses local file storage to store face embeddings in JSON format. This provides:
 
-- **Pros**: Simple, no external dependencies, works offline
-- **Cons**: Limited scalability, no advanced search features
-- **Best for**: Development, testing, small-scale deployments
-
-### Qdrant Storage
-
-- **Pros**: Scalable, advanced vector search, cloud-ready
-- **Cons**: Requires Qdrant server setup
-- **Best for**: Production deployments, large-scale applications
-
-#### Setting up Qdrant
-
-1. Install Qdrant:
-   ```bash
-   docker run -p 6333:6333 qdrant/qdrant
-   ```
-
-2. Update `config.yaml`:
-   ```yaml
-   storage:
-     type: "qdrant"
-     qdrant:
-       url: "http://localhost:6333"
-       collection_name: "face_embeddings"
-   ```
+- **Simplicity**: No external dependencies required
+- **Reliability**: Works offline and is easy to backup
+- **Transparency**: Human-readable JSON format for debugging
 
 ## Configuration Options
 
@@ -129,32 +94,27 @@ src/
 ├── main.rs              # Main application entry point
 ├── config.rs            # Configuration management
 ├── register.rs          # Face registration logic
+├── login.rs             # Face authentication logic
 ├── storage/             # Storage implementations
 │   ├── mod.rs          # Storage trait and types
-│   ├── local_file.rs   # Local file storage
-│   └── qdrant_storage.rs # Qdrant storage
+│   └── local_file.rs   # Local file storage
 ├── embeddings/          # Embedding computation
 │   └── embeddings.rs    # Model and embedding logic
-└── image_utils/         # Image processing utilities
-    └── imagenet.rs      # ImageNet preprocessing
+├── image_utils/         # Image processing utilities
+│   └── imagenet.rs      # ImageNet preprocessing
+└── camera/              # Camera integration
+    └── mod.rs           # Camera capture logic
 ```
 
 ## Dependencies
 
 - **candle-core/candle-nn**: Neural network framework
-- **qdrant-client**: Qdrant vector database client
 - **serde/serde_yaml**: Configuration serialization
 - **reqwest**: HTTP client for video streaming
 - **image**: Image processing
 - **minifb**: Window management for display
 
 ## Troubleshooting
-
-### Qdrant Connection Issues
-
-- Ensure Qdrant server is running on the configured URL
-- Check firewall settings
-- Verify API key if using Qdrant Cloud
 
 ### Video Stream Issues
 
@@ -164,8 +124,8 @@ src/
 
 ### Storage Issues
 
-- For local file storage: Ensure write permissions to the configured path
-- For Qdrant: Check collection creation permissions
+- Ensure write permissions to the configured file path
+- Check that the directory exists or can be created
 
 ## Contributing
 

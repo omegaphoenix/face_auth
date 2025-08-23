@@ -14,7 +14,6 @@ struct StorageConfig {
     #[serde(rename = "type")]
     storage_type: String,
     local_file: LocalFileConfig,
-    qdrant: QdrantConfig,
 }
 
 #[derive(Debug, Deserialize)]
@@ -22,12 +21,7 @@ struct LocalFileConfig {
     path: String,
 }
 
-#[derive(Debug, Deserialize)]
-struct QdrantConfig {
-    url: String,
-    collection_name: String,
-    api_key: Option<String>,
-}
+
 
 #[derive(Debug, Deserialize)]
 struct StreamConfig {
@@ -56,11 +50,6 @@ fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
 pub fn get_storage_config() -> StorageType {
     match CONFIG.storage.storage_type.as_str() {
         "local_file" => StorageType::LocalFile(CONFIG.storage.local_file.path.clone()),
-        "qdrant" => StorageType::Qdrant {
-            url: CONFIG.storage.qdrant.url.clone(),
-            collection_name: CONFIG.storage.qdrant.collection_name.clone(),
-            api_key: CONFIG.storage.qdrant.api_key.clone(),
-        },
         _ => {
             eprintln!("Unknown storage type: {}, defaulting to local_file", CONFIG.storage.storage_type);
             StorageType::LocalFile("embeddings.json".to_string())
