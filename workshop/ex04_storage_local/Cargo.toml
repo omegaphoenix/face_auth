@@ -3,6 +3,9 @@ name = "ex04_storage_local"
 version = "0.1.0"
 edition = "2021"
 
+[profile.dev.package.gemm-f16]
+opt-level = 3
+
 [dependencies]
 anyhow = "1.0"
 chrono = { version = "0.4", features = ["serde"] }

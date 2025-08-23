@@ -3,6 +3,9 @@ name = "ex02_embeddings"
 version = "0.1.0"
 edition = "2021"
 
+[profile.dev.package.gemm-f16]
+opt-level = 3
+
 [dependencies]
 anyhow = "1.0"
 candle-core = "0.9.1"
