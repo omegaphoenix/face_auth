@@ -1,6 +1,6 @@
 fastapi==0.116.1
 uvicorn==0.35.0
-opencv-python==4.12.0.88
-# picamera2==0.3.12
-numpy
+opencv-python==4.10.0.82
+picamera2==0.3.30
+numpy==1.26.4
 python-dotenv==1.0.0
