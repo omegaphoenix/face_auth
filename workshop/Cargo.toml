@@ -17,6 +17,10 @@ candle-nn = "0.9.1"
 candle-transformers = "0.9.1"
 hf-hub = "0.4.3"
 
+[profile.dev.package.gemm-f16]
+opt-level = 3
+
+
 # Image processing
 image = "0.25.6"
 
