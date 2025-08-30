@@ -26,10 +26,9 @@ pub fn login(model: &Func, storage: &dyn EmbeddingStorage, user_name: &str) -> R
     // 3. Compare the live embedding with each stored embedding
     let mut best_match_similarity = 0.0;
 
-    let live_tensor = Tensor::new(live_embedding, &Device::Cpu)?;
+    let live_tensor = Tensor::new(live_embedding, &Device::Cpu)?.unsqueeze(0)?;
     for record in user_embeddings {   
-        let stored_tensor = Tensor::new(record.embedding.as_slice(), &Device::Cpu)?;
-
+        let stored_tensor = Tensor::new(record.embedding.as_slice(), &Device::Cpu)?.unsqueeze(0)?;
         let similarity = cosine_similarity(&live_tensor, &stored_tensor)?;
         println!("[*] Comparing with stored embedding (ID: {0}), similarity: {similarity:.4}", record.id);
         if similarity > best_match_similarity {
@@ -37,8 +36,8 @@ pub fn login(model: &Func, storage: &dyn EmbeddingStorage, user_name: &str) -> R
         }
     }
 
-    // TODO: Make this threshold configurable
-    let login_threshold = 0.8; 
+
+    let login_threshold = 0.7; 
 
     if best_match_similarity > login_threshold {
         println!("[+] Login successful for user '{user_name}' with similarity: {best_match_similarity:.4}");
@@ -53,6 +52,7 @@ pub fn login(model: &Func, storage: &dyn EmbeddingStorage, user_name: &str) -> R
 fn normalize_l2(v: &Tensor) -> Result<Tensor> {
     Ok(v.broadcast_div(&v.sqr()?.sum_keepdim(1)?.sqrt()?)?)
 }
+
 
 
 
