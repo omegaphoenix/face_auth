@@ -42,8 +42,10 @@ cargo run
 ### Commands
 
 - `register` - Register a new user by capturing face embeddings
-- `login` - Authenticate an existing user
+- `login` - Authenticate an existing user  
 - `quit` or `exit` - Exit the application
+
+**Note**: Commands are entered without the `/` prefix (e.g., type `register`, not `/register`)
 
 ### Registration Process
 
@@ -83,49 +85,110 @@ stream:
 
 ```yaml
 model:
-  name: "timm/convnext_atto.d2_in1k"     # Model name
-  embedding_size: 768                     # Embedding vector size
+  name: "timm/convnext_atto.d2_in1k"     # Model name from Hugging Face
+```
+
+### UI Configuration
+
+```yaml
+ui:
+  window_title: "Face Authentication"      # Display window title
+  window_width: 800                        # Window width in pixels
+  window_height: 600                       # Window height in pixels
 ```
 
 ## File Structure
 
 ```
 src/
-├── main.rs              # Main application entry point
-├── config.rs            # Configuration management
-├── register.rs          # Face registration logic
-├── login.rs             # Face authentication logic
-├── storage/             # Storage implementations
-│   ├── mod.rs          # Storage trait and types
-│   └── local_file.rs   # Local file storage
-├── embeddings/          # Embedding computation
-│   └── embeddings.rs    # Model and embedding logic
-├── image_utils/         # Image processing utilities
-│   └── imagenet.rs      # ImageNet preprocessing
-└── camera/              # Camera integration
-    └── mod.rs           # Camera capture logic
+├── main.rs                              # Main application entry point
+├── config.rs                            # Configuration management
+├── register.rs                          # Face registration logic
+├── login.rs                             # Face authentication logic
+├── storage/                             # Storage implementations
+│   ├── storage.rs                      # Storage module exports
+│   ├── vector_storage.rs               # Storage trait and types
+│   └── local_file_vector_storage.rs    # Local file storage implementation
+├── embeddings/                          # Embedding computation
+│   ├── embeddings.rs                   # Module exports
+│   └── utils.rs                        # Model loading and embedding computation
+├── image_utils/                         # Image processing utilities
+│   ├── image_utils.rs                  # Module exports
+│   └── imagenet.rs                     # ImageNet preprocessing
+├── camera/                              # Camera integration
+│   ├── camera.rs                       # Module exports
+│   └── camera_interactions.rs          # Camera capture and streaming logic
+└── config.yaml                         # Configuration file
 ```
 
 ## Dependencies
 
-- **candle-core/candle-nn**: Neural network framework
-- **serde/serde_yaml**: Configuration serialization
+### Core Dependencies
+- **candle-core/candle-nn**: Neural network framework for model inference
+- **candle-transformers**: Pre-trained model implementations (ConvNeXt)
+- **hf-hub**: Hugging Face Hub integration for model downloading
+- **anyhow**: Error handling and propagation
+
+### Data & Configuration
+- **serde/serde_yaml/serde_json**: Serialization for config and storage
+- **uuid**: Unique identifier generation for embeddings
+- **chrono**: Timestamp handling for embedding records
+
+### Camera & Streaming
 - **reqwest**: HTTP client for video streaming
-- **image**: Image processing
-- **minifb**: Window management for display
+- **image**: Image processing and format handling
+- **minifb**: Window management for live video display
+
+### Utilities
+- **clap**: Command line argument parsing (for examples)
+- **dotenv**: Environment variable loading
+- **lazy_static**: Static configuration management
+
+## Prerequisites
+
+### Camera Server Setup
+
+Before running the face authentication system, you need to start the camera server:
+
+1. **Navigate to camera server directory**:
+   ```bash
+   cd camera_server
+   ```
+
+2. **Install Python dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Start the camera server**:
+   ```bash
+   python camera_stream_api.py
+   ```
+
+4. **Verify camera stream**: Open http://localhost:8000/video_feed in your browser
+
+### System Requirements
+- **Camera**: Webcam or external camera connected to your system
+- **Python 3.7+**: For the camera server
+- **Rust 1.70+**: For the main application
 
 ## Troubleshooting
 
-### Video Stream Issues
-
-- Ensure the video stream URL is accessible
-- Check network connectivity
-- Verify the stream format is supported
+### Camera Stream Issues
+- **No camera detected**: Ensure your camera is connected and not used by other applications
+- **Stream URL not accessible**: Verify the camera server is running on http://localhost:8000
+- **Poor image quality**: Check camera positioning and lighting conditions
+- **Connection timeout**: Ensure firewall isn't blocking localhost connections
 
 ### Storage Issues
+- **Permission denied**: Ensure write permissions to the configured file path
+- **Directory not found**: The system will auto-create directories as needed
+- **Corrupted embeddings.json**: Delete the file to start fresh (will lose registered users)
 
-- Ensure write permissions to the configured file path
-- Check that the directory exists or can be created
+### Model Loading Issues
+- **Download failures**: Check internet connection for Hugging Face model downloads
+- **Memory issues**: ConvNeXt-Atto is lightweight, but ensure sufficient RAM
+- **Performance**: First run may be slower due to model download and compilation
 
 ## Contributing
 

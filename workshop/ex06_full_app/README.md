@@ -44,6 +44,24 @@ This application contains **TODO sections** that map directly to your previous l
 - Similarity search across stored embeddings
 - Top-k retrieval for face matching
 
+## 🚧 Current Implementation Status
+
+**Note**: This exercise currently contains a **working implementation** that serves as a reference. The code includes:
+
+- ✅ **Complete camera integration** with live video streaming
+- ✅ **Full registration and login workflows**
+- ✅ **Working storage system** with JSON persistence
+- ✅ **Functional similarity computation** for face matching
+- ✅ **Real-time embedding generation** from camera input
+
+### Learning Approach Options
+
+1. **Study Mode**: Examine the working code to understand how all components integrate
+2. **Practice Mode**: Create your own TODO version by commenting out implementations
+3. **Extension Mode**: Add new features like multiple face storage per user, confidence thresholds, or improved UI
+
+The fully functional code demonstrates how exercises 1-5 combine into a production-ready system.
+
 ## 🚀 Application Features
 
 Once completed, your system will provide:
@@ -94,6 +112,34 @@ cargo run
    cargo build
    ```
 
+## Prerequisites
+
+### Camera Server Setup
+
+Before running the face authentication system, you need to start the camera server:
+
+1. **Navigate to camera server directory**:
+   ```bash
+   cd ../camera_server
+   ```
+
+2. **Install Python dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Start the camera server**:
+   ```bash
+   python camera_stream_api.py
+   ```
+
+4. **Verify camera stream**: Open http://localhost:8000/video_feed in your browser
+
+### System Requirements
+- **Camera**: Webcam or external camera connected to your system
+- **Python 3.7+**: For the camera server
+- **Rust 1.70+**: For the main application
+
 ## Configuration
 
 The system uses `config.yaml` for configuration:
@@ -118,8 +164,10 @@ cargo run
 ### Commands
 
 - `register` - Register a new user by capturing face embeddings
-- `login` - Authenticate an existing user
+- `login` - Authenticate an existing user  
 - `quit` or `exit` - Exit the application
+
+**Note**: Commands are entered without the `/` prefix (e.g., type `register`, not `/register`)
 
 ### Registration Process
 
@@ -167,28 +215,48 @@ model:
 
 ```
 src/
-├── main.rs              # Main application entry point
-├── config.rs            # Configuration management
-├── register.rs          # Face registration logic
-├── login.rs             # Face authentication logic
-├── storage/             # Storage implementations
-│   ├── mod.rs          # Storage trait and types
-│   └── local_file.rs   # Local file storage
-├── embeddings/          # Embedding computation
-│   └── embeddings.rs    # Model and embedding logic
-├── image_utils/         # Image processing utilities
-│   └── imagenet.rs      # ImageNet preprocessing
-└── camera/              # Camera integration
-    └── mod.rs           # Camera capture logic
+├── main.rs                              # Main application entry point
+├── config.rs                            # Configuration management  
+├── register.rs                          # Face registration logic
+├── login.rs                             # Face authentication logic
+├── storage/                             # Storage implementations
+│   ├── storage.rs                      # Storage module exports
+│   ├── vector_storage.rs               # Storage trait and types
+│   └── local_file_vector_storage.rs    # Local file storage implementation
+├── embeddings/                          # Embedding computation
+│   ├── embeddings.rs                   # Module exports
+│   └── utils.rs                        # Model loading and embedding computation
+├── image_utils/                         # Image processing utilities
+│   ├── image_utils.rs                  # Module exports
+│   └── imagenet.rs                     # ImageNet preprocessing
+├── camera/                              # Camera integration
+│   ├── camera.rs                       # Module exports
+│   └── camera_interactions.rs          # Camera capture and streaming logic
+└── config.yaml                         # Configuration file
 ```
 
 ## Dependencies
 
-- **candle-core/candle-nn**: Neural network framework
-- **serde/serde_yaml**: Configuration serialization
+### Core Dependencies
+- **candle-core/candle-nn**: Neural network framework for model inference
+- **candle-transformers**: Pre-trained model implementations (ConvNeXt)
+- **hf-hub**: Hugging Face Hub integration for model downloading
+- **anyhow**: Error handling and propagation
+
+### Data & Configuration
+- **serde/serde_yaml/serde_json**: Serialization for config and storage
+- **uuid**: Unique identifier generation for embeddings
+- **chrono**: Timestamp handling for embedding records
+
+### Camera & Streaming
 - **reqwest**: HTTP client for video streaming
-- **image**: Image processing
-- **minifb**: Window management for display
+- **image**: Image processing and format handling
+- **minifb**: Window management for live video display
+
+### Utilities
+- **clap**: Command line argument parsing (for examples)
+- **dotenv**: Environment variable loading
+- **lazy_static**: Static configuration management
 
 ## Troubleshooting
 
