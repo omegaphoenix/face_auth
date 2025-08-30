@@ -1,8 +1,8 @@
-# Exercise 02: ConvNeXt and Embeddings
+# Exercise 02: ConvNeXt Model and Embedding Generation
 
 ## Overview
 
-This exercise focuses on building a ConvNeXt model and computing embeddings for face authentication. You'll learn how to load a pre-trained ConvNeXt model and use it to generate feature embeddings from facial images.
+This exercise teaches you how to load a pre-trained ConvNeXt model and use it to generate face embeddings. You'll implement two key functions: `build_model()` to load the model and `compute_embedding()` to generate feature vectors from facial images.
 
 ## What is ConvNeXt?
 
@@ -14,82 +14,127 @@ ConvNeXt (Convolution meets NeXt) is a modern convolutional neural network archi
 - **Competitive Performance**: Achieves performance comparable to Swin Transformers
 - **Efficiency**: Maintains the computational efficiency of traditional CNNs
 
-### ConvNeXt Variants:
-- **ConvNeXt-T (Tiny)**: 28M parameters
-- **ConvNeXt-S (Small)**: 50M parameters  
-- **ConvNeXt-B (Base)**: 89M parameters
-- **ConvNeXt-L (Large)**: 198M parameters
-- **ConvNeXt-Atto**: Ultra-lightweight variant used in this exercise
+### ConvNeXt-Atto Variant:
+We use **ConvNeXt-Atto**, an ultra-lightweight variant that provides excellent performance for face recognition tasks while being computationally efficient.
 
-## What are Embeddings?
+## What are Face Embeddings?
 
-Embeddings are dense, low-dimensional vector representations of high-dimensional data (like images). In the context of face authentication:
+Embeddings are dense, low-dimensional vector representations that capture the essential characteristics of a face in numerical form.
 
-### Purpose of Embeddings:
-1. **Dimensionality Reduction**: Convert high-resolution images to compact feature vectors
-2. **Feature Extraction**: Capture essential facial characteristics in numerical form
-3. **Similarity Computation**: Enable mathematical comparison between faces
+### Purpose of Face Embeddings:
+1. **Dimensionality Reduction**: Convert 224×224×3 images (~150K pixels) to compact vectors (~768 dimensions)
+2. **Feature Extraction**: Capture essential facial characteristics (eye shape, nose structure, etc.)
+3. **Similarity Computation**: Enable mathematical comparison between different faces
 4. **Efficient Storage**: Store compact representations instead of full images
 
 ### Properties of Good Face Embeddings:
-- **Discriminative**: Different faces produce different embeddings
-- **Robust**: Similar under lighting, pose, and expression variations
-- **Normalized**: Often L2-normalized for consistent similarity computation
-- **Compact**: Typically 512-2048 dimensions vs millions of pixels
+- **Discriminative**: Different people produce different embeddings
+- **Robust**: Similar embeddings for the same person under different conditions
+- **Compact**: Much smaller than original images
+- **Comparable**: Can be compared using mathematical similarity metrics
 
-## Exercise Tasks
+## Your Tasks
 
-In this exercise, you will:
-
-1. **Build ConvNeXt Model**: Load a pre-trained ConvNeXt-Atto model from Hugging Face
-2. **Compute Embeddings**: Process facial images to generate feature embeddings
-3. **Apply Normalization**: Use L2 normalization for consistent similarity computation
-
-### Key Functions to Implement:
+### Task 1: Implement `build_model()`
 
 ```rust
-pub fn build_model() -> Result<Func>
+pub fn build_model() -> Result<Func<'static>>
 ```
-- Load the pre-trained ConvNeXt model from Hugging Face Hub
-- Use the "timm/convnext_atto.d2_in1k" model variant
-- Return a callable model function
+
+This function should:
+1. **Download Model**: Use Hugging Face Hub API to get "timm/convnext_atto.d2_in1k"
+2. **Load Weights**: Load the SafeTensors model file
+3. **Create Model**: Build ConvNeXt without the final classification layer
+4. **Return Function**: Return a callable model function
+
+#### Implementation Steps:
+```rust
+// 1. Set up device (CPU for this exercise)
+let device = &Device::Cpu;
+
+// 2. Download model from Hugging Face Hub
+let api = hf_hub::api::sync::Api::new()?;
+let api = api.model("timm/convnext_atto.d2_in1k".to_string());
+let model_file = api.get("model.safetensors")?;
+
+// 3. Load weights into VarBuilder
+let vb = unsafe { VarBuilder::from_mmaped_safetensors(&[model_file], DType::F32, &device)? };
+
+// 4. Create ConvNeXt model without final layer
+let model = convnext::convnext_no_final_layer(&convnext::Config::atto(), vb)?;
+```
+
+### Task 2: Implement `compute_embedding()`
 
 ```rust
 pub fn compute_embedding(model: &Func, image: &Tensor) -> Result<Tensor>
 ```
-- Process input image tensor through the model
-- Extract raw embedding features from ConvNeXt layers
-- Handle both single images and batched inputs
 
-## Technical Implementation
+This function should:
+1. **Handle Input Format**: Check if input is single image or batch
+2. **Add Batch Dimension**: If single image (3D), add batch dimension to make it 4D
+3. **Forward Pass**: Run the image through the model
+4. **Return Embeddings**: Return the feature vectors
 
-### Model Loading:
-- Uses Hugging Face Hub API to download pre-trained weights
-- Loads model weights from SafeTensors format
-- Configures ConvNeXt with no final classification layer (for embeddings)
+#### Implementation Steps:
+```rust
+// 1. Check input dimensions and add batch dimension if needed
+let input = if image.dim(0)? == 3 {
+    image.unsqueeze(0)?  // Add batch dimension: [3,224,224] -> [1,3,224,224]
+} else {
+    image.clone()        // Already batched: [N,3,224,224]
+};
 
-### Image Processing Pipeline:
-1. **Input**: Preprocessed image tensor (224x224, ImageNet normalized)
-2. **Forward Pass**: Process through ConvNeXt layers
-3. **Feature Extraction**: Extract final feature representations
-4. **Output**: Raw embedding vectors ready for similarity computation
+// 2. Forward pass through the model
+let embeddings = model.forward(&input)?;
+```
 
-### Mathematical Foundation:
-- **Feature Extraction**: Extract final feature representations from ConvNeXt layers
-- **Embedding Output**: Dense vector representations (typically 512-2048 dimensions)
-- **Preprocessing**: Images normalized using ImageNet statistics
+## Technical Details
 
-## Sources and Further Reading
+### Model Architecture:
+- **Input**: 224×224×3 RGB images (ImageNet normalized)
+- **Output**: 768-dimensional embedding vectors
+- **Weights**: Pre-trained on ImageNet dataset
+- **Format**: SafeTensors for efficient loading
 
-### Primary References:
-- **ConvNeXt Paper**: [A ConvNet for the 2020s](https://arxiv.org/abs/2201.03545)
-- **Candle ConvNeXt Implementation**: [GitHub - Hugging Face Candle ConvNeXt](https://github.com/huggingface/candle/blob/main/candle-transformers/src/models/convnext.rs)
-- **Hugging Face Model Hub**: [ConvNeXt-Atto Model](https://huggingface.co/timm/convnext_atto.d2_in1k)
+### Tensor Shapes:
+- **Single Image Input**: `[3, 224, 224]` → `[1, 3, 224, 224]` (add batch dim)
+- **Batch Input**: `[N, 3, 224, 224]` → `[N, 3, 224, 224]` (keep as is)
+- **Output**: `[N, 768]` where N is batch size
+
+### Key Dependencies:
+- `hf_hub` - Download models from Hugging Face
+- `candle_transformers::models::convnext` - ConvNeXt implementation
+- `candle_nn::VarBuilder` - Load model weights
+
+## Testing
+
+The test verifies that:
+- Model loads successfully from Hugging Face
+- Embedding computation works with preprocessed images
+- Output tensor has the correct batch dimension
+
+Run the test with:
+```bash
+cargo test
+```
+
+## Expected Behavior
+
+After successful implementation:
+- `build_model()` downloads and loads the ConvNeXt-Atto model
+- `compute_embedding()` processes images and returns 768-dimensional embeddings
+- The model handles both single images and batches automatically
 
 ## Next Steps
 
 After completing this exercise, you'll be ready to:
-- Learn similarity computation between face embeddings (Exercise 03)
-- Build embedding databases for face recognition
-- Implement real-time face authentication systems
-- Explore advanced embedding techniques and architectures
+- Learn similarity computation between embeddings (Exercise 03)
+- Understand how these embeddings enable face recognition
+- Build storage systems for embedding databases (Exercise 04)
+
+## References
+
+- **ConvNeXt Paper**: [A ConvNet for the 2020s](https://arxiv.org/abs/2201.03545)
+- **Hugging Face Model**: [timm/convnext_atto.d2_in1k](https://huggingface.co/timm/convnext_atto.d2_in1k)
+- **Candle ConvNeXt**: [GitHub Implementation](https://github.com/huggingface/candle/blob/main/candle-transformers/src/models/convnext.rs)

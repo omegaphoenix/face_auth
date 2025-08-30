@@ -2,112 +2,183 @@
 
 ## Overview
 
-This exercise focuses on implementing vector retrieval functionality - the core component of any vector similarity search system. You'll build a top-k similarity search that finds the most similar embeddings to a query vector.
+This exercise teaches you how to implement vector similarity search - the core functionality that enables face recognition systems to find matching faces. You'll build a `top_k` function that searches through stored embeddings to find the most similar faces to a query.
 
-## The Approach
+## What is Vector Similarity Search?
 
-### What We're Building
+Vector similarity search is the process of:
+1. **Taking a query vector** (e.g., embedding of a face to identify)
+2. **Comparing it against a database** of stored vectors (known face embeddings)
+3. **Ranking results by similarity** (most similar faces first)
+4. **Returning the top matches** (k most similar faces)
 
-The main goal is to implement the `top_k` function that:
+This is exactly how face authentication works:
+- **Registration**: Store face embeddings in the database
+- **Login**: Capture new face, find most similar stored embedding
+- **Decision**: If similarity > threshold, grant access
 
-1. Takes a query embedding vector
-2. Compares it against all stored embeddings using cosine similarity
-3. Returns the top-k most similar records, sorted by similarity score (descending)
+## Your Task
 
-### Implementation Strategy
+Implement the `top_k` function that performs similarity search:
 
 ```rust
 pub fn top_k(storage: &dyn EmbeddingStorage, query: &[f32], k: usize) -> Result<Vec<(EmbeddingRecord, f32)>>
 ```
 
-The algorithm should:
+### Algorithm Steps:
 
-1. **Retrieve all embeddings** from storage
-2. **Calculate similarity scores** between the query and each stored embedding using cosine similarity
-3. **Sort by similarity** in descending order (highest similarity first)
-4. **Return top-k results** respecting the k limit
+1. **Retrieve All Embeddings**: Get all stored embeddings from storage
+2. **Calculate Similarities**: Compute cosine similarity between query and each stored embedding
+3. **Sort by Similarity**: Order results from highest to lowest similarity
+4. **Return Top-K**: Take only the k most similar results
 
-### Key Considerations
+### Implementation Strategy:
 
-- **Similarity Metric**: We use cosine similarity, which measures the angle between vectors (ignoring magnitude)
-- **Performance**: This naive approach scans all embeddings - O(n) complexity
-- **Memory**: Loads all embeddings into memory for comparison
-- **Sorting**: Results must be sorted by similarity score in descending order
+```rust
+pub fn top_k(storage: &dyn EmbeddingStorage, query: &[f32], k: usize) -> Result<Vec<(EmbeddingRecord, f32)>> {
+    // 1. Get all stored embeddings
+    let records = storage.get_all_embeddings()?;
+    let mut results = Vec::new();
+    
+    // 2. Calculate similarity for each record
+    for record in records {
+        let similarity = cosine_similarity_vec(query, &record.embedding);
+        results.push((record, similarity));
+    }
+    
+    // 3. Sort by similarity (descending - highest first)
+    results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+    
+    // 4. Take top k results
+    results.truncate(k);
+    
+    Ok(results)
+}
+```
+
+## Similarity Function
+
+You'll need to implement a vector-based cosine similarity function:
+
+```rust
+fn cosine_similarity_vec(a: &[f32], b: &[f32]) -> f32 {
+    // Calculate dot product
+    let dot_product: f32 = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum();
+    
+    // Calculate magnitudes
+    let magnitude_a: f32 = a.iter().map(|x| x * x).sum::<f32>().sqrt();
+    let magnitude_b: f32 = b.iter().map(|x| x * x).sum::<f32>().sqrt();
+    
+    // Return cosine similarity
+    dot_product / (magnitude_a * magnitude_b)
+}
+```
+
+## Key Implementation Details
+
+### Edge Cases to Handle:
+- **Empty Storage**: Return empty vector if no embeddings stored
+- **k = 0**: Return empty vector
+- **k > stored count**: Return all available embeddings
+- **Division by Zero**: Handle zero-magnitude vectors gracefully
+
+### Performance Characteristics:
+- **Time Complexity**: O(n × d + n log n) where n = number of stored embeddings, d = embedding dimension
+- **Space Complexity**: O(n) for storing similarity scores
+- **Scalability**: Linear scan works for thousands of embeddings, but not millions
+
+### Sorting Considerations:
+- Use **descending order** (highest similarity first)
+- Handle **NaN values** with `partial_cmp()` and `unwrap_or()`
+- **Stable sort** ensures consistent ordering for equal similarities
+
+## Testing
+
+The tests verify that your implementation:
+
+1. **Returns Best Match First**: Most similar embedding appears first in results
+2. **Sorts Correctly**: Results are in descending similarity order
+3. **Respects K Limit**: Returns exactly k results (or fewer if less data available)
+4. **Handles Empty Storage**: Works correctly with no stored embeddings
+
+Run tests with:
+```bash
+cargo test
+```
+
+## Example Usage
+
+```rust
+// Create storage and add some face embeddings
+let (mut storage, _path) = open_temp_storage()?;
+add_record(storage.as_mut(), "Alice", vec![1.0, 0.0, 0.0])?;
+add_record(storage.as_mut(), "Bob", vec![0.0, 1.0, 0.0])?;
+add_record(storage.as_mut(), "Charlie", vec![0.8, 0.2, 0.0])?;
+
+// Search for faces similar to query
+let query = vec![0.9, 0.1, 0.0];  // Similar to Alice and Charlie
+let results = top_k(storage.as_ref(), &query, 2)?;
+
+// Results will be:
+// 1. Alice (similarity ≈ 0.95)
+// 2. Charlie (similarity ≈ 0.85)
+```
 
 ## Production Vector Databases
 
-While this exercise teaches the fundamentals, production systems use specialized vector databases that provide:
+While this exercise teaches the fundamentals, production systems use specialized vector databases for better performance:
 
-- **Approximate Nearest Neighbor (ANN)** algorithms for sub-linear search time
-- **Indexing strategies** (HNSW, IVF, LSH) for fast retrieval
-- **Distributed storage** and horizontal scaling
-- **Real-time updates** and deletions
-- **Multiple similarity metrics** (cosine, euclidean, dot product)
-- **Filtering and metadata queries**
-- **Built-in persistence** and backup solutions
+### Why Specialized Vector DBs?
 
-### Recommended Vector Databases
+- **Approximate Nearest Neighbor (ANN)**: Sub-linear search time using indexing
+- **Horizontal Scaling**: Handle millions/billions of vectors
+- **Real-time Updates**: Add/remove vectors without rebuilding indices
+- **Advanced Filtering**: Combine similarity search with metadata filters
+- **Optimized Storage**: Compressed vectors and efficient memory usage
 
-#### QDrant (Rust-Native) ⭐
+### Recommended Options:
 
-**Perfect for Rust developers!** QDrant is written in Rust and provides excellent Rust client libraries.
-
+#### Qdrant (Rust-Native) ⭐
 - **Homepage**: [https://qdrant.tech/](https://qdrant.tech/)
-- **Rust Client**: [https://github.com/qdrant/rust-client](https://github.com/qdrant/rust-client)
-- **Documentation**: [https://qdrant.tech/documentation/](https://qdrant.tech/documentation/)
-- **Features**: 
-  - Native Rust implementation
-  - HTTP and gRPC APIs
-  - HNSW indexing
-  - Payload filtering
-  - Clustering support
-  - Docker deployment
+- **Why Choose**: Written in Rust, excellent Rust client, HNSW indexing
+- **Use Case**: Perfect for Rust applications requiring high performance
 
-```toml
-[dependencies]
-qdrant-client = "1.7"
-```
-
-#### Other Popular Options
-
-**Weaviate**
-- **Homepage**: [https://weaviate.io/](https://weaviate.io/)
-- **Rust Client**: [https://github.com/weaviate/weaviate-rust-client](https://github.com/weaviate/weaviate-rust-client)
-- Features: GraphQL API, automatic vectorization, hybrid search
-
-**Pinecone**
-- **Homepage**: [https://www.pinecone.io/](https://www.pinecone.io/)
-- **Rust Client**: [https://github.com/pinecone-io/pinecone-rust-client](https://github.com/pinecone-io/pinecone-rust-client)
-- Features: Fully managed, serverless, real-time updates
-
-**Chroma**
-- **Homepage**: [https://www.trychroma.com/](https://www.trychroma.com/)
-- **Rust Client**: [https://github.com/chroma-core/chroma-rs](https://github.com/chroma-core/chroma-rs)
-- Features: Lightweight, embeddable, Python-first
-
-**Milvus**
-- **Homepage**: [https://milvus.io/](https://milvus.io/)
-- **Rust Client**: [https://github.com/milvus-io/milvus-sdk-rust](https://github.com/milvus-io/milvus-sdk-rust)
-- Features: Cloud-native, highly scalable, multiple index types
-
-**pgvector (PostgreSQL Extension)**
+#### pgvector (PostgreSQL Extension)
 - **Homepage**: [https://github.com/pgvector/pgvector](https://github.com/pgvector/pgvector)
-- **Rust Client**: Use any PostgreSQL client like `tokio-postgres`
-- Features: SQL-based, ACID transactions, familiar PostgreSQL ecosystem
+- **Why Choose**: SQL-based, ACID transactions, familiar ecosystem
+- **Use Case**: When you already use PostgreSQL and want vector search
 
-## Learning Objectives
+#### Pinecone
+- **Homepage**: [https://www.pinecone.io/](https://www.pinecone.io/)
+- **Why Choose**: Fully managed, serverless, auto-scaling
+- **Use Case**: When you want zero infrastructure management
 
-By implementing this exercise, you'll understand:
+## Real-World Applications
 
-1. **Vector similarity search fundamentals**
-2. **Trade-offs between accuracy and performance**
-3. **Why specialized vector databases exist**
-4. **How ranking and top-k selection works**
-5. **The importance of proper similarity metrics**
+Vector similarity search powers:
 
-## Implementation Tips
+- **Face Recognition**: Find matching faces in databases
+- **Recommendation Systems**: Find similar products/content
+- **Semantic Search**: Find documents by meaning, not keywords
+- **Duplicate Detection**: Identify similar images/documents
+- **Anomaly Detection**: Find outliers in high-dimensional data
 
-1. **Start simple**: Get the basic algorithm working first
-2. **Handle edge cases**: Empty storage, k=0, k > number of records
-3. **Test thoroughly**: Use the provided test cases to validate your implementation
-4. **Consider performance**: Think about how this scales with dataset size
+## Performance Optimization
+
+For production systems:
+
+1. **Indexing**: Use HNSW, IVF, or LSH for faster search
+2. **Quantization**: Reduce vector precision to save memory
+3. **Caching**: Cache frequently accessed embeddings
+4. **Batching**: Process multiple queries together
+5. **Filtering**: Pre-filter by metadata before similarity search
+
+## Next Steps
+
+After completing this exercise, you'll understand:
+- How face recognition systems find matching faces
+- The trade-offs between accuracy and performance in vector search
+- Why production systems need specialized vector databases
+- How to implement and optimize similarity search algorithms
+
+This completes the face authentication workshop! You now have all the building blocks to create a complete face recognition system.
