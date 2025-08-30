@@ -1,18 +1,19 @@
 use anyhow::Result;
-use candle_core::{Device, DType, Error, Tensor};
+use candle_core::{Device, DType, Tensor};
+use image::{DynamicImage};
 
 /// Exercise goal: implement image loading + ImageNet normalization.
 /// Steps:
 /// - open image path with `image::ImageReader`
-/// - resize to 224x224 (Triangle filter)
-/// - convert to RGB8, then to a Tensor of shape (3, 224, 224)
-/// - convert to f32 in [0,1]
-/// - subtract mean and divide by std using ImageNet constants
-pub fn load_and_normalize(_path: &str, mean: &[f32; 3],
-    std: &[f32; 3],   res: usize,) -> Result<Tensor> {
-    let img = image::ImageReader::open(_path)?
-        .decode()
-        .map_err(Error::wrap)?
+/// - resize to (res, res) (Triangle filter)
+/// - convert to RGB8, then to a Tensor of shape (3, res, rs)
+pub fn image_with_std_mean(
+    img: &DynamicImage,
+    res: usize,
+    mean: &[f32; 3],
+    std: &[f32; 3],
+) -> Result<Tensor> {
+    let img = img
         .resize_to_fill(
             res as u32,
             res as u32,
@@ -27,5 +28,3 @@ pub fn load_and_normalize(_path: &str, mean: &[f32; 3],
         .broadcast_sub(&mean)?
         .broadcast_div(&std)?)
 }
-
-

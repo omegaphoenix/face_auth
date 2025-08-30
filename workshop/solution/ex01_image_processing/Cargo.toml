@@ -1,5 +1,5 @@
 [package]
-name = "ex01_image_processing"
+name = "ex01_image_processing_solution"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,8 +7,5 @@ edition = "2021"
 anyhow = "1.0"
 candle-core = "0.9.1"
 image = "0.25.6"
-
-[dev-dependencies]
-face-auth = { path = "../../app" }
 
 

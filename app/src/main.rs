@@ -6,7 +6,7 @@ mod image_utils;
 mod embeddings;
 mod config;
 mod camera;
-use embeddings::embeddings::build_model;
+use embeddings::utils::build_model;
 mod login;
 use login::login;
 mod register;
@@ -60,7 +60,7 @@ pub fn main() -> anyhow::Result<()> {
                 continue;
             }
             _ => {
-                println!("Unknown command: {}", command);
+                println!("Unknown command: {command}");
                 println!("Available commands: /register, /login, /quit");
             }
         }
@@ -88,7 +88,7 @@ fn handle_register(model: &Func) -> anyhow::Result<()> {
     let storage_config = config::get_storage_config();
     let mut storage = storage_config.create_storage()?;
     
-    register(&model, &mut storage, user_name).map_err(|e| anyhow::anyhow!("Registration failed: {}", e))?;
+    register(model, &mut storage, user_name).map_err(|e| anyhow::anyhow!("Registration failed: {}", e))?;
     println!("Registration completed successfully!");
     Ok(())
 }
@@ -112,10 +112,10 @@ fn handle_login(model: &Func) -> anyhow::Result<()> {
     let storage_config = config::get_storage_config();
     let storage = storage_config.create_storage()?;
     
-    match login(model, &storage, user_name) {
+    match login(model, &*storage, user_name) {
         Ok(true) => println!("Login successful!"),
         Ok(false) => println!("Login failed."),
-        Err(e) => eprintln!("An error occurred during login: {}", e),
+        Err(e) => eprintln!("An error occurred during login: {e}"),
     }
     
     Ok(())

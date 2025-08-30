@@ -18,14 +18,24 @@ mod tests {
     use super::*;
     use candle_core::Device;
     use candle_nn::Func;
-    use face_auth::image_utils::imagenet;
+    use ex01_image_processing_solution::image_with_std_mean;
 
     #[test]
     fn same_person_higher_similarity() -> Result<()> {
         let device = &Device::Cpu;
-        let img1 = imagenet::load_image224("../../app/test_images/brad1.png")?.to_device(device)?;
-        let img2 = imagenet::load_image224("../../app/test_images/brad2.png")?.to_device(device)?;
-        let img3 = imagenet::load_image224("../../app/test_images/tom.png")?.to_device(device)?;
+        let reader1 = image::ImageReader::open("../../app/test_images/brad1.png")?;
+        let image1 = reader1.decode()?;
+        let reader2 = image::ImageReader::open("../../app/test_images/brad2.png")?;
+        let image2 = reader2.decode()?;
+        let reader3 = image::ImageReader::open("../../app/test_images/tom.png")?;
+        let image3 = reader3.decode()?;
+
+        let imagenet_mean: [f32; 3] = [0.485, 0.456, 0.406];
+        let imagenet_std: [f32; 3] = [0.229, 0.224, 0.225];
+        
+        let img1 = image_with_std_mean(&image1, 224, &imagenet_mean, &imagenet_std)?;
+        let img2 = image_with_std_mean(&image2, 224, &imagenet_mean, &imagenet_std)?;
+        let img3 = image_with_std_mean(&image3, 224, &imagenet_mean, &imagenet_std)?;
         let model: Func = build_model()?;
         let e1 = compute_embedding(&model, &img1)?;
         let e2 = compute_embedding(&model, &img2)?;

@@ -11,7 +11,3 @@ anyhow = "1.0"
 candle-core = "0.9.1"
 image = "0.25.6"
 
-[dev-dependencies]
-face-auth = { path = "../../app" }
-
-

@@ -1,4 +1,4 @@
-use crate::storage::StorageType;
+use crate::storage::vector_storage::StorageType;
 use serde::Deserialize;
 use std::fs;
 
@@ -34,7 +34,6 @@ struct StreamConfig {
 #[derive(Debug, Deserialize)]
 struct ModelConfig {
     name: String,
-    embedding_size: usize,
 }
 
 lazy_static::lazy_static! {
@@ -76,7 +75,3 @@ pub fn get_chunk_size() -> usize {
 pub fn get_model_name() -> &'static str {
     &CONFIG.model.name
 }
-
-pub fn get_embedding_size() -> usize {
-    CONFIG.model.embedding_size
-} 

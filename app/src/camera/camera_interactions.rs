@@ -1,24 +1,23 @@
 //! src/camera/mod.rs
-
-use std::error::Error;
+use anyhow::Result;
 use std::time::{Duration, Instant};
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use reqwest::blocking::Client;
 use crate::config::*;
-use crate::image_utils::imagenet;
-use crate::embeddings::embeddings::compute_embeddings;
+use crate::image_utils::imagenet::{self, image_with_std_mean};
+use crate::embeddings::utils::compute_embeddings;
 use candle_nn::Func;
 
 use minifb::{Window, WindowOptions, Key};
 use std::io::Read;
 use image::{DynamicImage, ImageFormat};
 
-pub fn capture_and_compute_average_embedding(model: &Func) -> Result<Vec<f32>, Box<dyn Error>> {
-    println!("[*] Starting camera capture for embedding computation from: {}", get_stream_url());
+pub fn capture_and_compute_average_embedding(model: &Func) -> Result<Vec<f32>> {
+    println!("[*] Starting camera capture for embedding computation from: {{get_stream_url()}}");
 
     // Shared latest frame for display and sampling
-    let latest_frame = Arc::new(Mutex::new(None::<DynamicImage>));
+    let latest_frame = Arc::new(Mutex::new(None::<Arc<DynamicImage>>));
     let latest_frame_clone_stream = Arc::clone(&latest_frame);
     let latest_frame_clone_display = Arc::clone(&latest_frame);
 
@@ -29,14 +28,14 @@ pub fn capture_and_compute_average_embedding(model: &Func) -> Result<Vec<f32>, B
     // Stream reader thread - just updates the latest frame
     let stream_handle = thread::spawn(move || {
         if let Err(e) = stream_reader(latest_frame_clone_stream, shutdown_rx_stream) {
-            eprintln!("Stream reader error: {}", e);
+            eprintln!("Stream reader error: {e}");
         }
     });
 
     // Display thread - shows the latest frame and listens for shutdown signal
     let display_handle = thread::spawn(move || {
         if let Err(e) = display_processor(latest_frame_clone_display, shutdown_rx_display) {
-            eprintln!("Display processor error: {}", e);
+            eprintln!("Display processor error: {e}");
         }
     });
 
@@ -51,9 +50,9 @@ pub fn capture_and_compute_average_embedding(model: &Func) -> Result<Vec<f32>, B
 }
 
 fn stream_reader(
-    latest_frame: Arc<Mutex<Option<DynamicImage>>>,
+    latest_frame: Arc<Mutex<Option<Arc<DynamicImage>>>>,
     shutdown_rx: mpsc::Receiver<()>
-) -> Result<(), Box<dyn Error>> {
+) -> Result<()> {
     let client = Client::builder()
         .timeout(Duration::from_secs(30))
         .build()?;
@@ -85,11 +84,11 @@ fn stream_reader(
                     if let Ok(image) = decode_jpeg(&jpeg_data) {
                         // Update the shared latest frame
                         if let Ok(mut frame) = latest_frame.try_lock() {
-                            *frame = Some(image);
+                            *frame = Some(Arc::new(image));
                             frame_count += 1;
 
                             if frame_count % 100 == 0 {
-                                println!("Processed {} frames", frame_count);
+                                println!("Processed {frame_count} frames");
                             }
                         }
                         // If mutex is locked, just skip this frame - no big deal
@@ -98,13 +97,12 @@ fn stream_reader(
 
                 // Keep buffer size reasonable
                 if buffer.len() > 200_000 {
+                    // Avoid shrink/expand thrash; just clear and keep capacity
                     buffer.clear();
-                    buffer.shrink_to_fit();
-                    buffer.reserve(300_000);
                 }
             }
             Err(e) => {
-                eprintln!("Stream read error: {}", e);
+                eprintln!("Stream read error: {e}");
                 thread::sleep(Duration::from_millis(100));
             }
         }
@@ -116,10 +114,10 @@ fn stream_reader(
 
 fn embedding_sampler_and_computer(
     model: &Func,
-    latest_frame: Arc<Mutex<Option<DynamicImage>>>,
+    latest_frame: Arc<Mutex<Option<Arc<DynamicImage>>>>,
     shutdown_tx_stream: mpsc::Sender<()>,
     shutdown_tx_display: mpsc::Sender<()>
-) -> Result<Vec<f32>, Box<dyn Error>> {
+) -> Result<Vec<f32>> {
     let mut sample_count = 0;
     let start_time = Instant::now();
     let mut processing_time_total = Duration::default();
@@ -127,7 +125,7 @@ fn embedding_sampler_and_computer(
     println!("Embedding sampler started - will process {} samples with {}ms intervals",
              get_num_images(), get_interval_millis());
 
-    let mut collected_frames = Vec::new();
+    let mut collected_frames: Vec<Arc<DynamicImage>> = Vec::new();
     let mut processed_frames = Vec::new();
 
     // Collect all frames first
@@ -136,11 +134,11 @@ fn embedding_sampler_and_computer(
         thread::sleep(Duration::from_millis(get_interval_millis()));
 
         // Get the current latest frame
-        let frame_to_process = {
+        let frame_to_process: Arc<DynamicImage> = {
             match latest_frame.lock() {
                 Ok(frame_guard) => {
                     match frame_guard.as_ref() {
-                        Some(frame) => frame.clone(),
+                        Some(frame) => Arc::clone(frame),
                         None => {
                             println!("No frame available yet, waiting...");
                             continue;
@@ -160,7 +158,8 @@ fn embedding_sampler_and_computer(
                  sample_count + 1, start_time.elapsed().as_secs_f32());
 
         // Process frame for embedding computation
-        let processed_frame = imagenet::image_with_std_mean(
+        
+        let processed_frame =image_with_std_mean(
             &frame_to_process,
             224,
             &imagenet::IMAGENET_MEAN,
@@ -197,7 +196,7 @@ fn embedding_sampler_and_computer(
         // processed_frames is Vec<Tensor>
         let batch = Tensor::stack(&processed_frames, 0)?;
         println!("[*] Computing embeddings for batch of {} samples", processed_frames.len());
-        let batch_embeddings = compute_embeddings(&model, &batch)?;
+        let batch_embeddings = compute_embeddings(model, &batch)?;
         let batch_embeddings_vec = batch_embeddings.to_vec2::<f32>()?;
         for (i, embedding_vec) in batch_embeddings_vec.into_iter().enumerate() {
             println!("[*] Got embedding {} of {} (batch inference)", i + 1, processed_frames.len());
@@ -210,14 +209,10 @@ fn embedding_sampler_and_computer(
              inference_time.as_secs_f32(), 
              inference_time.as_secs_f32() / embeddings.len() as f32);
 
-    // Save all frames
-    for (i, frame) in collected_frames.iter().enumerate() {
-        save_frame(frame, &format!("sample_{}.jpg", i + 1))?;
-    }
 
     // Compute and return the average embedding
     if !embeddings.is_empty() {
-        println!("[*] Computing average embedding from {} samples", embeddings.len());
+        println!("[*] Computing average embedding from {{embeddings.len()}} samples");
         
         let embedding_length = embeddings[0].len();
         let mut avg_embedding = vec![0.0f32; embedding_length];
@@ -241,20 +236,24 @@ fn embedding_sampler_and_computer(
 
         Ok(avg_embedding)
     } else {
-        Err("No embeddings were generated".into())
+        Err(anyhow::anyhow!("No embeddings were generated"))
     }
 }
 
 fn display_processor(
-    latest_frame: Arc<Mutex<Option<DynamicImage>>>,
+    latest_frame: Arc<Mutex<Option<Arc<DynamicImage>>>>,
     shutdown_rx: mpsc::Receiver<()>
-) -> Result<(), Box<dyn Error>> {
+) -> Result<()> {
     const WIDTH: usize = 640;
     const HEIGHT: usize = 480;
 
     let mut window = Window::new("Live Stream", WIDTH, HEIGHT, WindowOptions::default())?;
+    window.set_target_fps(30);
 
     println!("Display window opened. Press ESC to exit or wait for processing to complete.");
+
+    let mut pixels: Vec<u32> = vec![0u32; WIDTH * HEIGHT];
+    let black_pixels: Vec<u32> = vec![0u32; WIDTH * HEIGHT];
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
         // Check if we should shutdown (non-blocking)
@@ -263,9 +262,9 @@ fn display_processor(
         }
 
         // Get the latest frame
-        let current_frame = {
+        let current_frame: Option<Arc<DynamicImage>> = {
             match latest_frame.try_lock() {
-                Ok(frame_guard) => frame_guard.clone(),
+                Ok(frame_guard) => frame_guard.as_ref().map(Arc::clone),
                 Err(_) => None, // Mutex locked, use previous frame or black screen
             }
         };
@@ -278,25 +277,21 @@ fn display_processor(
                 image::imageops::FilterType::Nearest
             ).to_rgb8();
 
-            let pixels: Vec<u32> = img.pixels()
-                .map(|p| (p[0] as u32) << 16 | (p[1] as u32) << 8 | (p[2] as u32))
-                .collect();
+            for (dst, p) in pixels.iter_mut().zip(img.pixels()) {
+                *dst = (p[0] as u32) << 16 | (p[1] as u32) << 8 | (p[2] as u32);
+            }
 
             if let Err(e) = window.update_with_buffer(&pixels, WIDTH, HEIGHT) {
-                eprintln!("Window update error: {}", e);
+                eprintln!("Window update error: {e}");
                 break;
             }
         } else {
             // Show black screen if no frame available yet
-            let black_pixels = vec![0u32; WIDTH * HEIGHT];
             if let Err(e) = window.update_with_buffer(&black_pixels, WIDTH, HEIGHT) {
-                eprintln!("Window update error: {}", e);
+                eprintln!("Window update error: {e}");
                 break;
             }
         }
-
-        // ~30 FPS
-        thread::sleep(Duration::from_millis(33));
     }
 
     println!("Display window closed");
@@ -318,7 +313,16 @@ fn extract_next_jpeg(buffer: &mut Vec<u8>) -> Option<Vec<u8>> {
 }
 
 fn find_jpeg_start(buffer: &[u8]) -> Option<usize> {
-    buffer.windows(2).position(|w| w == [0xFF, 0xD8])
+    // Manual byte scan to avoid extra overhead from iterator/window machinery
+    let len = buffer.len();
+    let mut i = 0;
+    while i + 1 < len {
+        if buffer[i] == 0xFF && buffer[i + 1] == 0xD8 {
+            return Some(i);
+        }
+        i += 1;
+    }
+    None
 }
 
 fn find_jpeg_end(buffer: &[u8], start_pos: usize) -> Option<usize> {
@@ -326,23 +330,22 @@ fn find_jpeg_end(buffer: &[u8], start_pos: usize) -> Option<usize> {
         return None;
     }
 
-    buffer[start_pos + 2..]
-        .windows(2)
-        .position(|w| w == [0xFF, 0xD9])
-        .map(|pos| start_pos + 2 + pos + 1)
+    let len = buffer.len();
+    let mut i = start_pos + 2;
+    while i + 1 < len {
+        if buffer[i] == 0xFF && buffer[i + 1] == 0xD9 {
+            return Some(i + 1);
+        }
+        i += 1;
+    }
+    None
 }
 
-fn decode_jpeg(jpeg_data: &[u8]) -> Result<DynamicImage, Box<dyn Error>> {
+fn decode_jpeg(jpeg_data: &[u8]) -> Result<DynamicImage> {
     if jpeg_data.len() < 10 {
-        return Err("JPEG data too small".into());
+        return Err(anyhow::anyhow!("JPEG data too small"));
     }
 
     Ok(image::load_from_memory_with_format(jpeg_data, ImageFormat::Jpeg)?)
-}
-
-fn save_frame(frame: &DynamicImage, path: &str) -> Result<(), Box<dyn Error>> {
-    frame.save(path)?;
-    println!("Saved frame to: {}", path);
-    Ok(())
 }
 

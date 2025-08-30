@@ -1,13 +1,15 @@
-use std::error::Error;
 use candle_nn::Func;
-use crate::storage::{EmbeddingStorage, EmbeddingRecord};
-use crate::camera;
+use crate::storage::vector_storage::{EmbeddingStorage, EmbeddingRecord};
+use candle_core::Tensor;
+use anyhow::Result;
+use candle_core::Device;
+use crate::camera::camera_interactions::{capture_and_compute_average_embedding};
 
-pub fn login(model: &Func, storage: &Box<dyn EmbeddingStorage>, user_name: &str) -> Result<bool, Box<dyn Error>> {
-    println!("[*] Attempting to login user '{}'", user_name);
+pub fn login(model: &Func, storage: &dyn EmbeddingStorage, user_name: &str) -> Result<bool> {
+    println!("[*] Attempting to login user '{user_name}'");
 
     // 1. Capture a new embedding from the camera
-    let live_embedding = camera::capture_and_compute_average_embedding(model)?;
+    let live_embedding = capture_and_compute_average_embedding(model)?;
 
     // 2. Retrieve all stored embeddings for the given user
     let all_embeddings = storage.get_all_embeddings()?;
@@ -17,15 +19,19 @@ pub fn login(model: &Func, storage: &Box<dyn EmbeddingStorage>, user_name: &str)
         .collect();
 
     if user_embeddings.is_empty() {
-        println!("[!] No registered embeddings found for user '{}'", user_name);
+        println!("[!] No registered embeddings found for user '{user_name}'");
         return Ok(false);
     }
 
     // 3. Compare the live embedding with each stored embedding
     let mut best_match_similarity = 0.0;
-    for record in user_embeddings {
-        let similarity = cosine_similarity(&live_embedding, &record.embedding);
-        println!("[*] Comparing with stored embedding (ID: {}), similarity: {:.4}", record.id, similarity);
+
+    let live_tensor = Tensor::new(live_embedding, &Device::Cpu)?;
+    for record in user_embeddings {   
+        let stored_tensor = Tensor::new(record.embedding.as_slice(), &Device::Cpu)?;
+
+        let similarity = cosine_similarity(&live_tensor, &stored_tensor)?;
+        println!("[*] Comparing with stored embedding (ID: {0}), similarity: {similarity:.4}", record.id);
         if similarity > best_match_similarity {
             best_match_similarity = similarity;
         }
@@ -35,27 +41,26 @@ pub fn login(model: &Func, storage: &Box<dyn EmbeddingStorage>, user_name: &str)
     let login_threshold = 0.8; 
 
     if best_match_similarity > login_threshold {
-        println!("[+] Login successful for user '{}' with similarity: {:.4}", user_name, best_match_similarity);
+        println!("[+] Login successful for user '{user_name}' with similarity: {best_match_similarity:.4}");
         Ok(true)
     } else {
-        println!("[!] Login failed for user '{}'. Best similarity: {:.4}", user_name, best_match_similarity);
+        println!("[!] Login failed for user '{user_name}'. Best similarity: {best_match_similarity:.4}");
         Ok(false)
     }
 }
 
-fn cosine_similarity(v1: &[f32], v2: &[f32]) -> f32 {
-    if v1.len() != v2.len() {
-        return 0.0;
-    }
 
-    let dot_product: f32 = v1.iter().zip(v2.iter()).map(|(a, b)| a * b).sum();
-    let norm_v1: f32 = v1.iter().map(|a| a.powi(2)).sum::<f32>().sqrt();
-    let norm_v2: f32 = v2.iter().map(|a| a.powi(2)).sum::<f32>().sqrt();
+fn normalize_l2(v: &Tensor) -> Result<Tensor> {
+    Ok(v.broadcast_div(&v.sqr()?.sum_keepdim(1)?.sqrt()?)?)
+}
 
-    if norm_v1 == 0.0 || norm_v2 == 0.0 {
-        return 0.0;
-    }
 
-    dot_product / (norm_v1 * norm_v2)
+
+pub fn cosine_similarity(emb_a: &Tensor, emb_b: &Tensor) -> Result<f32> {
+    let emb_a = normalize_l2(emb_a)?;
+    let emb_b = normalize_l2(emb_b)?;
+    let similarity = emb_a.matmul(&emb_b.transpose(0, 1)?)?;
+    let similarity_value = similarity.squeeze(0)?.squeeze(0)?.to_vec0::<f32>()?;
+    Ok(similarity_value)
 }
 

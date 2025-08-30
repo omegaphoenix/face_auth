@@ -1,8 +1,7 @@
-pub mod local_file;
-
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use super::local_file_vector_storage::LocalFileVectorStorage;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmbeddingRecord {
@@ -15,10 +14,11 @@ pub struct EmbeddingRecord {
 
 pub trait EmbeddingStorage {
     fn store_embedding(&mut self, record: EmbeddingRecord) -> Result<()>;
+    #[allow(dead_code)]
     fn get_embedding(&self, id: &str) -> Result<Option<EmbeddingRecord>>;
     fn get_all_embeddings(&self) -> Result<Vec<EmbeddingRecord>>;
+    #[allow(dead_code)]
     fn delete_embedding(&mut self, id: &str) -> Result<bool>;
-    fn search_similar(&self, embedding: &[f32], limit: usize) -> Result<Vec<(EmbeddingRecord, f32)>>;
 }
 
 pub enum StorageType {
@@ -29,7 +29,7 @@ impl StorageType {
     pub fn create_storage(self) -> Result<Box<dyn EmbeddingStorage>> {
         match self {
             StorageType::LocalFile(path) => {
-                let storage = local_file::LocalFileStorage::new(path)?;
+                let storage = LocalFileVectorStorage::new(path)?;
                 Ok(Box::new(storage))
             }
         }

@@ -1,14 +1,14 @@
-use std::error::Error;
-use crate::storage::{EmbeddingRecord, EmbeddingStorage};
+use crate::storage::vector_storage::{EmbeddingRecord, EmbeddingStorage};
 use candle_nn::Func;
+use anyhow::Result;
 use uuid::Uuid;
-use crate::camera;
+use crate::camera::camera_interactions::{capture_and_compute_average_embedding};
 
-pub fn register(model: &Func, storage: &mut Box<dyn EmbeddingStorage>, user_name: &str) -> Result<(), Box<dyn Error>> {
-    println!("[*] Registering user '{}'", user_name);
+pub fn register(model: &Func, storage: &mut Box<dyn EmbeddingStorage>, user_name: &str) -> Result<()> {
+    println!("[*] Registering user '{user_name}'");
 
     // Capture frames and compute the average embedding using the new camera module
-    let avg_embedding = camera::capture_and_compute_average_embedding(model)?;
+    let avg_embedding = capture_and_compute_average_embedding(model)?;
 
     // Store the average embedding record
     let avg_record = EmbeddingRecord {
@@ -25,8 +25,8 @@ pub fn register(model: &Func, storage: &mut Box<dyn EmbeddingStorage>, user_name
     };
 
     if let Err(e) = storage.store_embedding(avg_record) {
-        eprintln!("Failed to store average embedding: {}", e);
-        Err(e.into())
+        eprintln!("Failed to store average embedding: {e}");
+        Err(e)
     } else {
         println!("[*] Stored average embedding for user '{}' (length: {})", 
                 user_name, avg_embedding.len());

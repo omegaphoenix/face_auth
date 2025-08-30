@@ -12,14 +12,13 @@ storage:
 # Stream Configuration
 stream:
   url: "http://localhost:8000/video_feed"
-  num_images: 8
+  num_images: 3
   interval_millis: 1000
   chunk_size: 8192
 
 # Model Configuration
 model:
   name: "timm/convnext_atto.d2_in1k"
-  embedding_size: 768
 
 # Optional: UI configuration  
 ui:

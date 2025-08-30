@@ -1,4 +1,4 @@
-use super::{EmbeddingRecord, EmbeddingStorage};
+use super::vector_storage::{EmbeddingRecord, EmbeddingStorage};
 use anyhow::Result;
 use serde_json;
 use std::collections::HashMap;
@@ -7,14 +7,14 @@ use std::io::{BufReader, BufWriter};
 use std::path::Path;
 use std::sync::Mutex;
 
-pub struct LocalFileStorage {
+pub struct LocalFileVectorStorage {
     file_path: String,
     data: Mutex<HashMap<String, EmbeddingRecord>>,
 }
 
-impl LocalFileStorage {
+impl LocalFileVectorStorage {
     pub fn new(file_path: String) -> Result<Self> {
-        let storage = LocalFileStorage {
+        let storage = LocalFileVectorStorage {
             file_path,
             data: Mutex::new(HashMap::new()),
         };
@@ -44,7 +44,7 @@ impl LocalFileStorage {
         let data: HashMap<String, EmbeddingRecord> = match serde_json::from_reader(reader) {
             Ok(data) => data,
             Err(e) => {
-                eprintln!("Warning: Could not parse existing embeddings file ({}), starting fresh", e);
+                eprintln!("Warning: Could not parse existing embeddings file ({e}), starting fresh");
                 HashMap::new()
             }
         };
@@ -80,7 +80,7 @@ impl LocalFileStorage {
     }
 }
 
-impl EmbeddingStorage for LocalFileStorage {
+impl EmbeddingStorage for LocalFileVectorStorage {
     fn store_embedding(&mut self, record: EmbeddingRecord) -> Result<()> {
         if let Ok(mut guard) = self.data.lock() {
             guard.insert(record.id.clone(), record);
@@ -117,38 +117,5 @@ impl EmbeddingStorage for LocalFileStorage {
         }
         
         Ok(deleted)
-    }
-
-    fn search_similar(&self, embedding: &[f32], limit: usize) -> Result<Vec<(EmbeddingRecord, f32)>> {
-        let mut results = Vec::new();
-        
-        if let Ok(guard) = self.data.lock() {
-            for record in guard.values() {
-                let similarity = cosine_similarity(embedding, &record.embedding);
-                results.push((record.clone(), similarity));
-            }
-        }
-        
-        // Sort by similarity (descending) and take top results
-        results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-        results.truncate(limit);
-        
-        Ok(results)
-    }
-}
-
-fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
-    if a.len() != b.len() || a.is_empty() {
-        return 0.0;
-    }
-    
-    let dot_product: f32 = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum();
-    let norm_a: f32 = a.iter().map(|x| x * x).sum::<f32>().sqrt();
-    let norm_b: f32 = b.iter().map(|x| x * x).sum::<f32>().sqrt();
-    
-    if norm_a == 0.0 || norm_b == 0.0 {
-        0.0
-    } else {
-        dot_product / (norm_a * norm_b)
     }
 }

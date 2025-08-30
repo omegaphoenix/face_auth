@@ -11,6 +11,8 @@ anyhow = "1.0"
 candle-nn = "0.9.1"
 candle-core = "0.9.1"
 face-auth = { path = "../../app" }
+image = "0.25.6"
 ex02_embeddings_solution = { path = "../solution/ex02_embeddings" }
+ex01_image_processing_solution = { path = "../solution/ex01_image_processing" }
 
 

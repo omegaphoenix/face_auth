@@ -1,16 +1,20 @@
 use anyhow::Result;
-use candle_core::{Device, DType, Error, Tensor};
+use candle_core::{Tensor};
+use image::{DynamicImage};
+use candle_core::{Device, DType};
 
 /// Exercise goal: implement image loading + ImageNet normalization.
 /// Steps:
 /// - open image path with `image::ImageReader`
-/// - resize to 224x224 (Triangle filter)
-/// - convert to RGB8, then to a Tensor of shape (3, 224, 224)
-/// - convert to f32 in [0,1]
-/// - subtract mean and divide by std using ImageNet constants
-pub fn load_and_normalize(_path: &str, mean: &[f32; 3],
-    std: &[f32; 3],   res: usize,) -> Result<Tensor> {
-    unimplemented!("TODO: implement image loading + normalization as described in the comments")
+/// - resize to (res, res) (Triangle filter)
+/// - convert to RGB8, then to a Tensor of shape (3, res, rs)
+pub fn image_with_std_mean(
+    _img: &DynamicImage,
+    _res: usize,
+    _mean: &[f32; 3],
+    _std: &[f32; 3],
+) -> Result<Tensor> {
+    unimplemented!("TODO: implement image loading + ImageNet normalization")
 }
 
 #[cfg(test)]
@@ -23,10 +27,13 @@ mod tests {
         
         
         // ImageNet normalization constants
-        let imagenet_mean = [0.485, 0.456, 0.406];
-        let imagenet_std = [0.229, 0.224, 0.225];
+        let imagenet_mean: [f32; 3] = [0.485, 0.456, 0.406];
+        let imagenet_std: [f32; 3] = [0.229, 0.224, 0.225];
+        let reader = image::ImageReader::open("../../app/test_images/brad1.png")?;
+        let image = reader.decode()?;
 
-        let t = load_and_normalize("../../app/test_images/brad1.png", &imagenet_mean, &imagenet_std, 224)?;
+
+        let t = image_with_std_mean(&image, 224, &imagenet_mean, &imagenet_std)?;
         
         // Check that tensor values are in reasonable range after normalization
         // Normalized values should typically be in range approximately [-2.5, 2.5]
