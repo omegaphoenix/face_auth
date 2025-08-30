@@ -57,7 +57,8 @@ For face embeddings, we want:
 - ✅ **Feature Extraction**: The rich feature representations (embeddings)
 - ❌ **Classification**: We don't need ImageNet class predictions
 
-By removing the final layer, we get the raw feature vectors (embeddings) that capture facial characteristics, which we can then use for similarity comparison.
+By removing the final layer, we get the raw feature vectors (embeddings) that capture facial characteristics, which we can then use for similarity comparison: Use `convnext::convnext_no_final_layer` - CHECK CANDLE CONVNEXT 
+
 
 #### Implementation Approach:
 - Use Hugging Face Hub API for model download
