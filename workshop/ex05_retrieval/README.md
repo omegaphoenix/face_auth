@@ -32,47 +32,21 @@ pub fn top_k(storage: &dyn EmbeddingStorage, query: &[f32], k: usize) -> Result<
 3. **Sort by Similarity**: Order results from highest to lowest similarity
 4. **Return Top-K**: Take only the k most similar results
 
-### Implementation Strategy:
+### Implementation Approach:
 
-```rust
-pub fn top_k(storage: &dyn EmbeddingStorage, query: &[f32], k: usize) -> Result<Vec<(EmbeddingRecord, f32)>> {
-    // 1. Get all stored embeddings
-    let records = storage.get_all_embeddings()?;
-    let mut results = Vec::new();
-    
-    // 2. Calculate similarity for each record
-    for record in records {
-        let similarity = cosine_similarity_vec(query, &record.embedding);
-        results.push((record, similarity));
-    }
-    
-    // 3. Sort by similarity (descending - highest first)
-    results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-    
-    // 4. Take top k results
-    results.truncate(k);
-    
-    Ok(results)
-}
-```
+The algorithm follows these conceptual steps:
+1. **Retrieve All Embeddings**: Get stored embeddings from storage
+2. **Calculate Similarities**: Compute similarity between query and each stored embedding
+3. **Sort Results**: Order by similarity (highest first)
+4. **Return Top-K**: Take only the k most similar results
 
-## Similarity Function
+### Key Operations Needed:
+- Storage retrieval operations
+- Vector similarity computation (cosine similarity)
+- Sorting and ranking algorithms
+- Result limiting and formatting
 
-You'll need to implement a vector-based cosine similarity function:
-
-```rust
-fn cosine_similarity_vec(a: &[f32], b: &[f32]) -> f32 {
-    // Calculate dot product
-    let dot_product: f32 = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum();
-    
-    // Calculate magnitudes
-    let magnitude_a: f32 = a.iter().map(|x| x * x).sum::<f32>().sqrt();
-    let magnitude_b: f32 = b.iter().map(|x| x * x).sum::<f32>().sqrt();
-    
-    // Return cosine similarity
-    dot_product / (magnitude_a * magnitude_b)
-}
-```
+**Hint**: You'll need a vector-based cosine similarity function. Check the CHEATSHEET.md for similarity computation building blocks.
 
 ## Key Implementation Details
 

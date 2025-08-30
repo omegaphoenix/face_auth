@@ -37,19 +37,22 @@ pub fn image_with_std_mean(
 ) -> Result<Tensor>
 ```
 
-### Step-by-Step Guide:
+### Implementation Approach:
 
-1. **Resize Image**: Use `resize_to_fill()` with Triangle filter to get exact dimensions
-2. **Convert Format**: Call `to_rgb8()` to ensure RGB format
-3. **Extract Data**: Use `into_raw()` to get pixel data as Vec<u8>
-4. **Create Tensor**: Build tensor with shape `(res, res, 3)` then permute to `(3, res, res)`
-5. **Normalize**: Convert to f32, divide by 255, subtract mean, divide by std
+1. **Resize Image**: Use appropriate image resizing methods
+2. **Convert Format**: Ensure consistent color channel format
+3. **Extract Data**: Get raw pixel data from the image
+4. **Create Tensor**: Build tensor with correct shape and dimensions
+5. **Normalize**: Apply scaling and ImageNet standardization
 
-### Key Candle Operations:
-- `Tensor::from_vec()` - Create tensor from raw data
-- `.permute((2, 0, 1))` - Reorder dimensions from HWC to CHW
-- `.to_dtype(DType::F32)` - Convert to float32
-- `.broadcast_sub()` and `.broadcast_div()` - Apply normalization
+### Key Operations Needed:
+- Image resizing and format conversion
+- Tensor creation from raw data
+- Dimension reordering (channels-first format)
+- Mathematical operations for normalization
+- Broadcasting for per-channel operations
+
+**Hint**: Check the CHEATSHEET.md for specific API calls and tensor operations.
 
 ## Testing
 

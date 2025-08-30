@@ -43,23 +43,15 @@ fn normalize_l2(v: &Tensor) -> Result<Tensor>
 ```
 
 This helper function should:
-1. **Calculate L2 Norm**: Compute `sqrt(sum(v²))` for each embedding
+1. **Calculate L2 Norm**: Compute the magnitude of the vector
 2. **Normalize**: Divide the vector by its norm to get unit length
 
-#### Implementation Steps:
-```rust
-// 1. Square each element: v²
-let squared = v.sqr()?;
+#### Implementation Approach:
+- Use tensor operations to compute the L2 norm (square, sum, square root)
+- Apply broadcasting division to normalize the vector
+- Ensure dimensions are handled correctly for broadcasting
 
-// 2. Sum along the embedding dimension (dim=1) and keep dimension
-let sum_squared = squared.sum_keepdim(1)?;
-
-// 3. Take square root to get L2 norm
-let norm = sum_squared.sqrt()?;
-
-// 4. Divide original vector by norm (broadcast division)
-v.broadcast_div(&norm)
-```
+**Hint**: Check the CHEATSHEET.md for L2 normalization building blocks.
 
 ### Task 2: Implement `cosine_similarity()`
 
@@ -69,22 +61,15 @@ pub fn cosine_similarity(emb_a: &Tensor, emb_b: &Tensor) -> Result<f32>
 
 This function should:
 1. **Normalize Both Embeddings**: Apply L2 normalization to both inputs
-2. **Compute Dot Product**: Matrix multiply the normalized embeddings
+2. **Compute Dot Product**: Calculate the similarity using matrix operations
 3. **Extract Scalar**: Convert the result tensor to a single f32 value
 
-#### Implementation Steps:
-```rust
-// 1. Normalize both embeddings
-let emb_a_norm = normalize_l2(emb_a)?;
-let emb_b_norm = normalize_l2(emb_b)?;
+#### Implementation Approach:
+- Use your `normalize_l2` function on both input embeddings
+- Perform matrix multiplication to compute the dot product
+- Handle tensor dimensions and extract the final scalar value
 
-// 2. Compute dot product via matrix multiplication
-// emb_b needs to be transposed for proper matrix multiplication
-let similarity_tensor = emb_a_norm.matmul(&emb_b_norm.transpose(0, 1)?)?;
-
-// 3. Extract the scalar value (remove batch dimensions)
-let similarity_value = similarity_tensor.squeeze(0)?.squeeze(0)?.to_vec0::<f32>()?;
-```
+**Hint**: Check the CHEATSHEET.md for cosine similarity building blocks and tensor operations.
 
 ## Technical Details
 

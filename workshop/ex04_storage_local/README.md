@@ -54,17 +54,12 @@ This constructor should:
 2. **Set Up In-Memory Cache**: Create a Mutex-protected HashMap for fast access
 3. **Load Existing Data**: Call `load_data()` to read any existing records
 
-#### Implementation Steps:
-```rust
-let storage = LocalFileStorage {
-    file_path,
-    data: Mutex::new(HashMap::new()),
-};
+#### Implementation Approach:
+- Initialize the struct fields with appropriate values
+- Set up thread-safe data structures for concurrent access
+- Load any existing data from the file system
 
-// Load existing data if file exists
-storage.load_data()?;
-Ok(storage)
-```
+**Hint**: Check the CHEATSHEET.md for HashMap and Mutex patterns.
 
 ### Task 2: Implement `load_data()`
 
@@ -78,29 +73,13 @@ This method should:
 3. **Parse JSON**: Deserialize the file content into a HashMap
 4. **Update Cache**: Store the loaded data in the in-memory HashMap
 
-#### Implementation Steps:
-```rust
-// Check if file exists
-if !Path::new(&self.file_path).exists() {
-    return Ok(());
-}
+#### Implementation Approach:
+- Use file system operations to check existence and size
+- Handle JSON deserialization with proper error handling
+- Update the in-memory cache with loaded data
+- Use proper mutex locking for thread safety
 
-// Check if file is empty
-let metadata = fs::metadata(&self.file_path)?;
-if metadata.len() == 0 {
-    return Ok(());
-}
-
-// Read and parse JSON
-let file = File::open(&self.file_path)?;
-let reader = BufReader::new(file);
-let data: HashMap<String, EmbeddingRecord> = serde_json::from_reader(reader)?;
-
-// Update in-memory cache
-if let Ok(mut guard) = self.data.lock() {
-    *guard = data;
-}
-```
+**Hint**: Check the CHEATSHEET.md for JSON deserialization patterns.
 
 ### Task 3: Implement `save_data()`
 
@@ -111,28 +90,16 @@ fn save_data(&self) -> Result<()>
 This method should:
 1. **Create Directory**: Ensure the parent directory exists
 2. **Open File**: Create or truncate the target file
-3. **Serialize Data**: Convert the HashMap to pretty-printed JSON
+3. **Serialize Data**: Convert the HashMap to JSON format
 4. **Write File**: Save the JSON to disk
 
-#### Implementation Steps:
-```rust
-// Create directory if needed
-if let Some(parent) = Path::new(&self.file_path).parent() {
-    fs::create_dir_all(parent)?;
-}
+#### Implementation Approach:
+- Handle directory creation for the file path
+- Use appropriate file opening options for writing
+- Serialize the in-memory data to JSON format
+- Ensure thread-safe access to the data
 
-// Open file for writing
-let file = OpenOptions::new()
-    .write(true)
-    .create(true)
-    .truncate(true)
-    .open(&self.file_path)?;
-
-// Write JSON data
-if let Ok(guard) = self.data.lock() {
-    serde_json::to_writer_pretty(file, &*guard)?;
-}
-```
+**Hint**: Check the CHEATSHEET.md for JSON serialization and file operations.
 
 ### Task 4: Implement `EmbeddingStorage` Trait
 
@@ -140,35 +107,27 @@ if let Ok(guard) = self.data.lock() {
 ```rust
 fn store_embedding(&mut self, record: EmbeddingRecord) -> Result<()>
 ```
-
-1. **Add to Cache**: Insert the record into the in-memory HashMap
-2. **Persist to Disk**: Call `save_data()` to write changes
+- Add the record to in-memory storage and persist to disk
 
 #### `get_embedding()`
 ```rust
 fn get_embedding(&self, id: &str) -> Result<Option<EmbeddingRecord>>
 ```
-
-1. **Search Cache**: Look up the record by ID in the HashMap
-2. **Return Result**: Clone and return the record if found
+- Search for and return a record by its ID
 
 #### `get_all_embeddings()`
 ```rust
 fn get_all_embeddings(&self) -> Result<Vec<EmbeddingRecord>>
 ```
-
-1. **Collect All**: Get all values from the HashMap
-2. **Return Vector**: Convert to a Vec of cloned records
+- Return all stored embedding records
 
 #### `delete_embedding()`
 ```rust
 fn delete_embedding(&mut self, id: &str) -> Result<bool>
 ```
+- Remove a record by ID and return whether deletion was successful
 
-1. **Remove from Cache**: Delete the record from HashMap
-2. **Check Success**: Track whether anything was actually removed
-3. **Persist Changes**: Save to disk if deletion occurred
-4. **Return Status**: Return true if something was deleted
+**Implementation Approach**: Use HashMap operations with proper mutex locking and persistence.
 
 ### Task 5: Implement `open_temp_storage()`
 
@@ -181,12 +140,12 @@ This helper function should:
 2. **Create Storage**: Initialize a LocalFileStorage instance
 3. **Return Boxed Trait**: Return as a trait object for flexibility
 
-#### Implementation:
-```rust
-let path = format!("workshop_local_{}.json", Uuid::new_v4());
-let storage = LocalFileStorage::new(path.clone())?;
-Ok((Box::new(storage), path))
-```
+#### Implementation Approach:
+- Generate a unique filename using UUID
+- Create a new storage instance with that path
+- Return both the storage and path for cleanup
+
+**Hint**: Use `Uuid::new_v4()` for unique identifiers.
 
 ## Technical Details
 

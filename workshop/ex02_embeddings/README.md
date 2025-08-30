@@ -47,22 +47,25 @@ This function should:
 3. **Create Model**: Build ConvNeXt without the final classification layer
 4. **Return Function**: Return a callable model function
 
-#### Implementation Steps:
-```rust
-// 1. Set up device (CPU for this exercise)
-let device = &Device::Cpu;
+#### Why "Without Final Layer"?
 
-// 2. Download model from Hugging Face Hub
-let api = hf_hub::api::sync::Api::new()?;
-let api = api.model("timm/convnext_atto.d2_in1k".to_string());
-let model_file = api.get("model.safetensors")?;
+The original ConvNeXt model was trained for ImageNet classification (1000 classes). It has:
+- **Feature Extraction Layers**: Extract meaningful patterns from images
+- **Final Classification Layer**: Maps features to 1000 ImageNet class probabilities
 
-// 3. Load weights into VarBuilder
-let vb = unsafe { VarBuilder::from_mmaped_safetensors(&[model_file], DType::F32, &device)? };
+For face embeddings, we want:
+- ✅ **Feature Extraction**: The rich feature representations (embeddings)
+- ❌ **Classification**: We don't need ImageNet class predictions
 
-// 4. Create ConvNeXt model without final layer
-let model = convnext::convnext_no_final_layer(&convnext::Config::atto(), vb)?;
-```
+By removing the final layer, we get the raw feature vectors (embeddings) that capture facial characteristics, which we can then use for similarity comparison.
+
+#### Implementation Approach:
+- Use Hugging Face Hub API for model download
+- Load model weights with VarBuilder
+- Create ConvNeXt architecture without classification head
+- Return the model as a callable function
+
+**Hint**: Check the CHEATSHEET.md for HuggingFace API patterns and model loading.
 
 ### Task 2: Implement `compute_embedding()`
 
@@ -72,22 +75,17 @@ pub fn compute_embedding(model: &Func, image: &Tensor) -> Result<Tensor>
 
 This function should:
 1. **Handle Input Format**: Check if input is single image or batch
-2. **Add Batch Dimension**: If single image (3D), add batch dimension to make it 4D
+2. **Add Batch Dimension**: If needed, ensure proper tensor dimensions
 3. **Forward Pass**: Run the image through the model
 4. **Return Embeddings**: Return the feature vectors
 
-#### Implementation Steps:
-```rust
-// 1. Check input dimensions and add batch dimension if needed
-let input = if image.dim(0)? == 3 {
-    image.unsqueeze(0)?  // Add batch dimension: [3,224,224] -> [1,3,224,224]
-} else {
-    image.clone()        // Already batched: [N,3,224,224]
-};
+#### Implementation Approach:
+- Check tensor dimensions to determine if batching is needed
+- Ensure input tensor has the correct shape for the model
+- Use the model's forward method to generate embeddings
+- Return the resulting embedding tensor
 
-// 2. Forward pass through the model
-let embeddings = model.forward(&input)?;
-```
+**Hint**: Models typically expect batch dimensions. Check the CHEATSHEET.md for tensor dimension handling.
 
 ## Technical Details
 
