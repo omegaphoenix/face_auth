@@ -106,16 +106,22 @@ let flattened: Vec<f32> = tensor.flatten_all()?.to_vec1()?;
 
 **What it does**: Scales vectors to unit length while preserving direction. Essential for cosine similarity.
 
+**Mathematical Formula**: `normalized_vector = vector / ||vector||₂`
+
+**Building Blocks**:
 ```rust
-fn normalize_l2(v: &Tensor) -> Result<Tensor> {
-    // Step by step breakdown:
-    // 1. v.sqr()? - Square each element: [a, b, c] → [a², b², c²]
-    // 2. .sum_keepdim(1)? - Sum along dimension 1, keep the dimension: [a²+b²+c²]
-    // 3. .sqrt()? - Take square root: √(a²+b²+c²) = ||v||₂ (L2 norm)
-    // 4. v.broadcast_div(...) - Divide original vector by its norm
-    
-    Ok(v.broadcast_div(&v.sqr()?.sum_keepdim(1)?.sqrt()?)?)
-}
+// Step by step operations you'll need:
+// 1. Square each element
+let squared = tensor.sqr()?;
+
+// 2. Sum along dimension (keeping dimensions for broadcasting)
+let sum_squared = tensor.sum_keepdim(1)?;
+
+// 3. Take square root to get L2 norm
+let norm = sum_squared.sqrt()?;
+
+// 4. Divide original by norm (broadcasting)
+let normalized = tensor.broadcast_div(&norm)?;
 ```
 
 **Why use it**: After L2 normalization, `||v||₂ = 1`, which means:
@@ -123,55 +129,63 @@ fn normalize_l2(v: &Tensor) -> Result<Tensor> {
 - Removes magnitude bias - focuses only on direction
 - Essential for fair comparison of embeddings
 
-### Cosine Similarity with Tensors
+### Cosine Similarity Building Blocks
+
+**Mathematical Formula**: `cosine_similarity = (A · B) / (||A|| × ||B||)`
+
+**Key Operations**:
 ```rust
-fn cosine_similarity(emb_a: &Tensor, emb_b: &Tensor) -> Result<f32> {
-    let emb_a = normalize_l2(emb_a)?;
-    let emb_b = normalize_l2(emb_b)?;
-    let similarity = emb_a.matmul(&emb_b.transpose(0, 1)?)?;
-    let similarity_value = similarity.squeeze(0)?.squeeze(0)?.to_vec0::<f32>()?;
-    Ok(similarity_value)
-}
+// Matrix multiplication for dot product
+let dot_product = tensor_a.matmul(&tensor_b.transpose(0, 1)?)?;
+
+// Transpose for proper matrix multiplication
+let transposed = tensor.transpose(0, 1)?;
+
+// Extract scalar from tensor
+let scalar_value = tensor.squeeze(0)?.squeeze(0)?.to_vec0::<f32>()?;
+
+// For Vec<f32> similarity (alternative approach):
+let dot: f32 = vec_a.iter().zip(vec_b.iter()).map(|(x, y)| x * y).sum();
+let mag_a: f32 = vec_a.iter().map(|x| x * x).sum::<f32>().sqrt();
+let mag_b: f32 = vec_b.iter().map(|x| x * x).sum::<f32>().sqrt();
 ```
 
 ### Model Loading & Usage
 
 **Core Concepts**: Loading pre-trained models and running inference.
 
+**Hugging Face Hub API Building Blocks**:
 ```rust
-// Pattern for loading models from Hugging Face Hub
-fn load_model_from_hf(model_name: &str) -> Result<SomeModelType> {
-    let device = &Device::Cpu;
-    
-    // 1. Download model weights from Hugging Face
-    let api = hf_hub::api::sync::Api::new()?;
-    let api = api.model(model_name.to_string());
-    let model_file = api.get("model.safetensors")?;
-    
-    // 2. Create VarBuilder from downloaded weights
-    let vb = unsafe { 
-        VarBuilder::from_mmaped_safetensors(&[model_file], DType::F32, &device)? 
-    };
-    
-    // 3. Instantiate model architecture with loaded weights
-    let model = SomeModel::load(&vb, &config)?;
-    
-    Ok(model)
-}
+// Download model from Hugging Face Hub
+let api = hf_hub::api::sync::Api::new()?;
+let api = api.model("model-name-here".to_string());
+let model_file = api.get("model.safetensors")?;
 
-// Pattern for running inference
-fn run_inference(model: &impl Module, input: &Tensor) -> Result<Tensor> {
-    // Ensure input has correct batch dimension
-    let batched_input = if input.dim(0)? == 3 {  // (C,H,W)
-        input.unsqueeze(0)?  // Add batch: (1,C,H,W)
-    } else {
-        input.clone()  // Already batched
-    };
-    
-    // Forward pass through the model
-    let output = model.forward(&batched_input)?;
-    Ok(output)
-}
+// Create VarBuilder from downloaded weights
+let vb = unsafe { 
+    VarBuilder::from_mmaped_safetensors(&[model_file], DType::F32, &device)? 
+};
+
+// Load specific model architectures (examples):
+// ConvNeXt: convnext::convnext_no_final_layer(&config, vb)?
+// Other models have similar patterns
+```
+
+**Inference Building Blocks**:
+```rust
+// Handle batch dimensions
+let batched_input = if input.dim(0)? == 3 {  // Single image (C,H,W)
+    input.unsqueeze(0)?  // Add batch: (1,C,H,W)
+} else {
+    input.clone()  // Already batched (N,C,H,W)
+};
+
+// Forward pass through model
+let output = model.forward(&batched_input)?;
+
+// Common model interfaces:
+// - Module::forward() for neural networks
+// - Func::forward() for functional models
 ```
 
 **Key Points**:
@@ -237,9 +251,15 @@ image::imageops::FilterType::CatmullRom  // Sharp results
 
 ### Defining Serializable Structs
 ```rust
+// Required derives for JSON serialization
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EmbeddingRecord {
-    ...
+pub struct YourStruct {
+    // Common field types:
+    pub id: String,                                    // String fields
+    pub name: String,
+    pub data: Vec<f32>,                               // Vector fields
+    pub timestamp: chrono::DateTime<chrono::Utc>,     // DateTime fields
+    pub metadata: HashMap<String, String>,            // HashMap fields
 }
 ```
 
