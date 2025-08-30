@@ -46,21 +46,28 @@ This application contains **TODO sections** that map directly to your previous l
 
 ## 🚧 Current Implementation Status
 
-**Note**: This exercise currently contains a **working implementation** that serves as a reference. The code includes:
+**This exercise contains TODO markers** where you need to implement the functionality you learned in exercises 1-5. The application framework is provided, but the core implementations are missing and marked with detailed TODO comments.
 
-- ✅ **Complete camera integration** with live video streaming
-- ✅ **Full registration and login workflows**
-- ✅ **Working storage system** with JSON persistence
-- ✅ **Functional similarity computation** for face matching
-- ✅ **Real-time embedding generation** from camera input
+### What's Provided:
+- ✅ **Application structure** and main loop
+- ✅ **Camera integration** and video streaming
+- ✅ **Configuration management** and module organization
+- ✅ **Function signatures** and type definitions
+- ✅ **Detailed TODO instructions** for each exercise
 
-### Learning Approach Options
+### What You Need to Implement:
+- ❌ **Image processing** (Exercise 01): `image_with_std_mean` function
+- ❌ **Model loading & embeddings** (Exercise 02): `build_model` and `compute_embeddings` functions  
+- ❌ **Similarity computation** (Exercise 03): `normalize_l2` and `cosine_similarity` functions
+- ❌ **Storage system** (Exercise 04): All `LocalFileVectorStorage` methods
+- 🔧 **Similarity search** (Exercise 05): Optional optimization concepts (already functional)
 
-1. **Study Mode**: Examine the working code to understand how all components integrate
-2. **Practice Mode**: Create your own TODO version by commenting out implementations
-3. **Extension Mode**: Add new features like multiple face storage per user, confidence thresholds, or improved UI
+### Learning Approach:
 
-The fully functional code demonstrates how exercises 1-5 combine into a production-ready system.
+1. **Follow the TODOs**: Each TODO comment provides detailed instructions and hints
+2. **Reference Previous Exercises**: Use your implementations from exercises 1-5
+3. **Test Incrementally**: Implement one exercise at a time and test functionality
+4. **Integration Focus**: See how individual components work together in a real application
 
 ## 🚀 Application Features
 
@@ -82,27 +89,50 @@ Search for `TODO` comments throughout the codebase. These mark the exact locatio
 grep -r "TODO" src/
 ```
 
-### Step 2: Map TODOs to Exercises
-Each TODO will reference which exercise concept it relates to:
-- `TODO: Exercise 01` - Image processing functions
-- `TODO: Exercise 02` - Model and embedding functions  
-- `TODO: Exercise 03` - Similarity computation functions
-- `TODO: Exercise 04` - Storage implementation functions
-- `TODO: Exercise 05` - Retrieval and search functions
+### Step 2: TODO Locations by Exercise
 
-### Step 3: Implement Solutions
-Use your implementations from the previous exercises to fill in the TODO sections. The exact function signatures and requirements will be provided in the TODO comments.
+**Exercise 01 - Image Processing:**
+- `src/image_utils/imagenet.rs`: `image_with_std_mean` function
+
+**Exercise 02 - Embeddings:**
+- `src/embeddings/utils.rs`: `build_model` and `compute_embeddings` functions
+
+**Exercise 03 - Similarity:**
+- `src/login.rs`: `normalize_l2` and `cosine_similarity` functions
+
+**Exercise 04 - Storage:**
+- `src/storage/local_file_vector_storage.rs`: All storage methods (`new`, `load_data`, `save_data`, `store_embedding`, `get_embedding`, `get_all_embeddings`, `delete_embedding`)
+
+**Exercise 05 - Retrieval (Optional Enhancement):**
+- `src/login.rs`: Optional similarity search optimization concepts
+
+### Step 3: Implementation Order
+
+**Recommended implementation order:**
+1. **Exercise 01**: Image processing (needed for camera input)
+2. **Exercise 02**: Model loading and embeddings (core functionality)
+3. **Exercise 04**: Storage system (needed to save/load embeddings)
+4. **Exercise 03**: Similarity computation (needed for authentication)
+5. **Exercise 05**: Optional enhancements (similarity search optimizations)
 
 ### Step 4: Test Your Implementation
-After completing each TODO section, test the functionality:
+After completing each exercise's TODOs, test incrementally:
 
 ```bash
-# Test individual components
-cargo test
+# Test after each exercise implementation
+cargo build
 
-# Run the full application
+# Run the full application once all TODOs are complete
 cargo run
 ```
+
+### Step 5: Integration Testing
+Once all TODOs are implemented:
+1. Start the camera server (see Prerequisites section)
+2. Run `cargo run` 
+3. Test registration: `register` → enter username → look at camera
+4. Test login: `login` → enter username → look at camera
+5. Verify similarity scores and authentication results
 
 ## Installation
 
@@ -218,22 +248,24 @@ src/
 ├── main.rs                              # Main application entry point
 ├── config.rs                            # Configuration management  
 ├── register.rs                          # Face registration logic
-├── login.rs                             # Face authentication logic
+├── login.rs                             # Face authentication logic (includes TODO for Ex 03 & 05)
 ├── storage/                             # Storage implementations
 │   ├── storage.rs                      # Storage module exports
 │   ├── vector_storage.rs               # Storage trait and types
-│   └── local_file_vector_storage.rs    # Local file storage implementation
+│   └── local_file_vector_storage.rs    # TODO: Local file storage implementation (Ex 04)
 ├── embeddings/                          # Embedding computation
 │   ├── embeddings.rs                   # Module exports
-│   └── utils.rs                        # Model loading and embedding computation
+│   └── utils.rs                        # TODO: Model loading and embedding computation (Ex 02)
 ├── image_utils/                         # Image processing utilities
 │   ├── image_utils.rs                  # Module exports
-│   └── imagenet.rs                     # ImageNet preprocessing
+│   └── imagenet.rs                     # TODO: ImageNet preprocessing (Ex 01)
 ├── camera/                              # Camera integration
 │   ├── camera.rs                       # Module exports
 │   └── camera_interactions.rs          # Camera capture and streaming logic
 └── config.yaml                         # Configuration file
 ```
+
+**Files marked with TODO contain implementations you need to complete based on exercises 1-5.**
 
 ## Dependencies
 

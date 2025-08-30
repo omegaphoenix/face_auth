@@ -10,18 +10,24 @@ pub fn image_with_std_mean(
     mean: &[f32; 3],
     std: &[f32; 3],
 ) -> Result<Tensor> {
-    let img = img
-        .resize_to_fill(
-            res as u32,
-            res as u32,
-            image::imageops::FilterType::Triangle,
-        );
-    let img = img.to_rgb8();
-    let data = img.into_raw();
-    let data = Tensor::from_vec(data, (res, res, 3), &Device::Cpu)?.permute((2, 0, 1))?;
-    let mean = Tensor::new(mean, &Device::Cpu)?.reshape((3, 1, 1))?;
-    let std = Tensor::new(std, &Device::Cpu)?.reshape((3, 1, 1))?;
-    (data.to_dtype(DType::F32)? / 255.)?
-        .broadcast_sub(&mean)?
-        .broadcast_div(&std)
+    // TODO: Exercise 01 - Image Processing & ImageNet Normalization
+    // 
+    // Implement the image preprocessing pipeline that:
+    // 1. Resizes the input image to the specified resolution using Triangle filtering
+    // 2. Converts to RGB8 format to ensure consistent color channels  
+    // 3. Creates a tensor with shape (3, height, width) - channels first format
+    // 4. Normalizes pixel values from [0-255] to [0-1] range
+    // 5. Applies ImageNet standardization: (pixel/255 - mean) / std
+    //
+    // Key operations needed:
+    // - Image resizing and format conversion
+    // - Tensor creation from raw pixel data
+    // - Dimension reordering (channels-first format)
+    // - Mathematical operations for normalization
+    // - Broadcasting for per-channel operations
+    //
+    // Expected output: Tensor with shape (3, res, res) and ImageNet-normalized values
+    // Value range: Approximately [-2.12, 2.64] based on ImageNet constants
+    
+    todo!("Implement image preprocessing and ImageNet normalization from Exercise 01")
 }

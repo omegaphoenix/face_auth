@@ -24,6 +24,17 @@ pub fn login(model: &Func, storage: &dyn EmbeddingStorage, user_name: &str) -> R
     }
 
     // 3. Compare the live embedding with each stored embedding
+    // TODO: Exercise 05 - Vector Similarity Search (Optional Enhancement)
+    //
+    // The current implementation manually computes similarity for each embedding.
+    // As an optional enhancement, you could implement a more efficient approach:
+    //
+    // 1. Create a helper function that computes cosine similarity for Vec<f32>
+    // 2. Implement a simple similarity search that finds the best match
+    // 3. This would demonstrate the concepts from Exercise 05 in a simpler context
+    //
+    // For now, the manual approach below works fine for the face authentication system.
+    
     let mut best_match_similarity = 0.0;
 
     let live_tensor = Tensor::new(live_embedding, &Device::Cpu)?.unsqueeze(0)?;
@@ -50,17 +61,62 @@ pub fn login(model: &Func, storage: &dyn EmbeddingStorage, user_name: &str) -> R
 
 
 fn normalize_l2(v: &Tensor) -> Result<Tensor> {
-    Ok(v.broadcast_div(&v.sqr()?.sum_keepdim(1)?.sqrt()?)?)
+    // TODO: Exercise 03 - L2 Normalization
+    //
+    // Implement L2 normalization function that:
+    // 1. Calculates the L2 norm (magnitude) of the vector
+    // 2. Divides the vector by its norm to get unit length
+    // 3. Handles tensor dimensions correctly for broadcasting
+    //
+    // Formula: normalized_vector = vector / ||vector||₂
+    //
+    // Key operations needed:
+    // - Element-wise square (.sqr())
+    // - Sum along appropriate dimension (.sum_keepdim())
+    // - Square root (.sqrt())
+    // - Broadcasting division (.broadcast_div())
+    //
+    // Why L2 normalization?
+    // - Ensures all embeddings have unit length (magnitude = 1)
+    // - Standardizes comparisons between different embeddings
+    // - Makes cosine similarity equivalent to dot product
+    // - Reduces sensitivity to lighting and scale variations
+    
+    todo!("Implement L2 normalization from Exercise 03")
 }
 
 
 
 
 pub fn cosine_similarity(emb_a: &Tensor, emb_b: &Tensor) -> Result<f32> {
-    let emb_a = normalize_l2(emb_a)?;
-    let emb_b = normalize_l2(emb_b)?;
-    let similarity = emb_a.matmul(&emb_b.transpose(0, 1)?)?;
-    let similarity_value = similarity.squeeze(0)?.squeeze(0)?.to_vec0::<f32>()?;
-    Ok(similarity_value)
+    // TODO: Exercise 03 - Cosine Similarity Computation
+    //
+    // Implement cosine similarity function that:
+    // 1. Normalizes both input embeddings using L2 normalization
+    // 2. Computes the dot product using matrix operations
+    // 3. Extracts the scalar similarity value from the result tensor
+    //
+    // Formula: cosine_similarity = (A · B) / (||A|| × ||B||)
+    // For normalized vectors: cosine_similarity = A · B
+    //
+    // Key operations needed:
+    // - Use normalize_l2() function on both embeddings
+    // - Matrix multiplication (.matmul()) for dot product
+    // - Tensor transpose (.transpose()) for proper dimensions
+    // - Tensor squeezing (.squeeze()) to remove size-1 dimensions
+    // - Scalar extraction (.to_vec0()) to get final f32 value
+    //
+    // Expected similarity ranges:
+    // - Same person: 0.7 - 0.95 (high similarity)
+    // - Different people: 0.2 - 0.6 (lower similarity)
+    // - Identical images: ~1.0 (perfect similarity)
+    //
+    // Why cosine similarity?
+    // - Measures direction, not magnitude of vectors
+    // - Less sensitive to lighting variations
+    // - Industry standard for face recognition
+    // - Returns intuitive scores between -1 and 1
+    
+    todo!("Implement cosine similarity computation from Exercise 03")
 }
 

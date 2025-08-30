@@ -12,6 +12,7 @@ use login::login;
 mod register;
 use register::register;
 mod storage;
+mod retrieval;
 use candle_nn::Func;
 
 
