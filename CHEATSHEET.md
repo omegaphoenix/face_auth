@@ -199,8 +199,7 @@ use image::{ImageReader, ImageFormat};
 ```rust
 // Load image from file path
 let img = image::ImageReader::open(path)?
-    .decode()
-    .map_err(Error::wrap)?;
+    .decode()?;
 
 // Resize image (multiple resize methods)
 let img = img.resize_to_fill(
@@ -299,7 +298,7 @@ let id = uuid::Uuid::new_v4().to_string();
 
 1. **Tensor Shapes**: Always check tensor dimensions before operations
 2. **Device Compatibility**: Ensure all tensors are on the same device
-3. **Data Types**: Be consistent with DType (F32 vs F64)
+3. **Data Types**: Be consistent with DType (F16 vs F32)
 4. **Error Handling**: Use `?` operator and proper Result types
 5. **Empty Files**: Always handle empty JSON files in deserialization
 6. **Path Handling**: Use proper path validation for file operations

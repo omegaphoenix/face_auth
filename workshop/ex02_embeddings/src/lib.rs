@@ -1,6 +1,9 @@
 use anyhow::Result;
+#[allow(unused_imports)]
 use candle_nn::{Module, VarBuilder, Func};
+#[allow(unused_imports)]
 use candle_transformers::models::convnext;
+#[allow(unused_imports)]
 use candle_core::{DType, Device, Tensor};
 
 /// Exercise: Build the ConvNeXt model from the main app and compute a single embedding.

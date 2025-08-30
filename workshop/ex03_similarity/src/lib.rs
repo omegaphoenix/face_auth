@@ -1,11 +1,11 @@
 use anyhow::Result;
 use candle_core::Tensor;
+#[allow(unused_imports)]
 use candle_nn::Func;
 
-// Import functions from ex02_embeddings solution
-use ex02_embeddings_solution::{build_model, compute_embedding};
 
-fn normalize_l2(v: &Tensor) -> Result<Tensor> {
+#[allow(dead_code)]
+fn normalize_l2(_v: &Tensor) -> Result<Tensor> {
     unimplemented!("TODO: normalize the tensor using L2 normalization")
 }
 /// Exercise: Implement cosine similarity using the app utilities and verify thresholds.
@@ -16,13 +16,12 @@ pub fn cosine_similarity(_emb_a: &Tensor, _emb_b: &Tensor) -> Result<f32> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use candle_core::Device;
     use candle_nn::Func;
     use ex01_image_processing_solution::image_with_std_mean;
+    use ex02_embeddings_solution::{build_model, compute_embedding};
 
     #[test]
     fn same_person_higher_similarity() -> Result<()> {
-        let device = &Device::Cpu;
         let reader1 = image::ImageReader::open("../../app/test_images/brad1.png")?;
         let image1 = reader1.decode()?;
         let reader2 = image::ImageReader::open("../../app/test_images/brad2.png")?;
@@ -32,7 +31,7 @@ mod tests {
 
         let imagenet_mean: [f32; 3] = [0.485, 0.456, 0.406];
         let imagenet_std: [f32; 3] = [0.229, 0.224, 0.225];
-        
+
         let img1 = image_with_std_mean(&image1, 224, &imagenet_mean, &imagenet_std)?;
         let img2 = image_with_std_mean(&image2, 224, &imagenet_mean, &imagenet_std)?;
         let img3 = image_with_std_mean(&image3, 224, &imagenet_mean, &imagenet_std)?;

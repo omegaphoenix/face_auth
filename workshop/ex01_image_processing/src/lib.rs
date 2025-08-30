@@ -1,6 +1,7 @@
 use anyhow::Result;
 use candle_core::{Tensor};
 use image::{DynamicImage};
+#[allow(unused_imports)]
 use candle_core::{Device, DType};
 
 /// Exercise goal: implement image loading + ImageNet normalization.

@@ -13,8 +13,6 @@ candle-nn = "0.9.1"
 hf-hub = "0.4.3"
 candle-transformers = "0.9.1"
 image = "0.25.6"
-
-[dev-dependencies]
 ex01_image_processing_solution = { path = "../solution/ex01_image_processing" }
 
 

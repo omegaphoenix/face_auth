@@ -1,8 +1,11 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use serde_json;
 use std::collections::HashMap;
-use std::fs;
+use std::fs::{self, File, OpenOptions};
+use std::io::{BufReader, BufWriter};
 use std::path::Path;
+use std::sync::Mutex;
 use uuid::Uuid;
 
 // Define the EmbeddingRecord struct
@@ -26,88 +29,121 @@ pub trait EmbeddingStorage {
 // Simple local file storage implementation
 pub struct LocalFileStorage {
     file_path: String,
+    data: Mutex<HashMap<String, EmbeddingRecord>>,
 }
-
-// TODO: Implement the LocalFileStorage struct
-// It should store and load records in a JSON file using serde
 
 impl LocalFileStorage {
     pub fn new(file_path: String) -> Result<Self> {
-        // TODO: Implement the constructor
-        // Hint: Just store the file_path in the struct
-        let _ = file_path; // remove after implementing
-        unimplemented!("TODO: implement LocalFileStorage::new")
+        let storage = LocalFileStorage {
+            file_path,
+            data: Mutex::new(HashMap::new()),
+        };
+        
+        // Load existing data if file exists
+        storage.load_data()?;
+        Ok(storage)
     }
 
-    fn load_records(&self) -> Result<Vec<EmbeddingRecord>> {
-        // TODO: Load records from the JSON file
-        // Hint: 
-        // 1. Check if file exists, return empty Vec if not
-        // 2. Read file content as string
-        // 3. Handle empty files
-        // 4. Deserialize JSON to Vec<EmbeddingRecord>
-        unimplemented!("TODO: implement load_records")
+    fn load_data(&self) -> Result<()> {
+        let path = Path::new(&self.file_path);
+        if !path.exists() {
+            return Ok(());
+        }
+
+        // Check if file is empty
+        let metadata = fs::metadata(path)?;
+        if metadata.len() == 0 {
+            // File exists but is empty, this is fine - just use empty HashMap
+            return Ok(());
+        }
+
+        let file = File::open(path)?;
+        let reader = BufReader::new(file);
+        
+        // Try to parse JSON, if it fails due to empty/invalid content, start fresh
+        let data: HashMap<String, EmbeddingRecord> = match serde_json::from_reader(reader) {
+            Ok(data) => data,
+            Err(e) => {
+                eprintln!("Warning: Could not parse existing embeddings file ({e}), starting fresh");
+                HashMap::new()
+            }
+        };
+        
+        if let Ok(mut guard) = self.data.lock() {
+            *guard = data;
+        }
+        
+        Ok(())
     }
 
-    fn save_records(&self, records: &[EmbeddingRecord]) -> Result<()> {
-        // TODO: Save records to the JSON file
-        // Hint:
-        // 1. Serialize records to JSON string (use serde_json::to_string_pretty)
-        // 2. Write string to file
-        let _ = records; // remove after implementing
-        unimplemented!("TODO: implement save_records")
+    fn save_data(&self) -> Result<()> {
+        let path = Path::new(&self.file_path);
+        
+        // Create directory if it doesn't exist
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+
+        let file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(path)?;
+        
+        let writer = BufWriter::new(file);
+        
+        if let Ok(guard) = self.data.lock() {
+            serde_json::to_writer_pretty(writer, &*guard)?;
+        }
+        
+        Ok(())
     }
 }
 
-// TODO: Implement the EmbeddingStorage trait for LocalFileStorage
-
 impl EmbeddingStorage for LocalFileStorage {
     fn store_embedding(&mut self, record: EmbeddingRecord) -> Result<()> {
-        // TODO: Add the record to existing records and save
-        // Hint:
-        // 1. Load existing records
-        // 2. Add new record to the list
-        // 3. Save the updated list
-        let _ = record; // remove after implementing
-        unimplemented!("TODO: implement store_embedding")
+        if let Ok(mut guard) = self.data.lock() {
+            guard.insert(record.id.clone(), record);
+        }
+        self.save_data()?;
+        Ok(())
     }
 
     fn get_embedding(&self, id: &str) -> Result<Option<EmbeddingRecord>> {
-        // TODO: Find and return the record with the given id
-        // Hint:
-        // 1. Load all records
-        // 2. Find the record with matching id
-        // 3. Return Some(record) if found, None if not
-        let _ = id; // remove after implementing
-        unimplemented!("TODO: implement get_embedding")
+        if let Ok(guard) = self.data.lock() {
+            Ok(guard.get(id).cloned())
+        } else {
+            Ok(None)
+        }
     }
 
     fn get_all_embeddings(&self) -> Result<Vec<EmbeddingRecord>> {
-        // TODO: Return all records
-        // Hint: Just call load_records
-        unimplemented!("TODO: implement get_all_embeddings")
+        if let Ok(guard) = self.data.lock() {
+            Ok(guard.values().cloned().collect())
+        } else {
+            Ok(Vec::new())
+        }
     }
 
     fn delete_embedding(&mut self, id: &str) -> Result<bool> {
-        // TODO: Remove the record with the given id
-        // Hint:
-        // 1. Load existing records
-        // 2. Keep track of initial length
-        // 3. Remove records with matching id
-        // 4. Save updated records if anything was removed
-        // 5. Return true if something was deleted, false otherwise
-        let _ = id; // remove after implementing
-        unimplemented!("TODO: implement delete_embedding")
+        let deleted = if let Ok(mut guard) = self.data.lock() {
+            guard.remove(id).is_some()
+        } else {
+            false
+        };
+        
+        if deleted {
+            self.save_data()?;
+        }
+        
+        Ok(deleted)
     }
 }
 
 pub fn open_temp_storage() -> Result<Box<dyn EmbeddingStorage>> {
-    // TODO: Create a LocalFileStorage with a unique temporary filename
-    // Hint: 
-    // 1. Generate a unique filename using Uuid: format!("workshop_local_{}.json", Uuid::new_v4())
-    // 2. Create a LocalFileStorage with that path
-    // 3. Return it as a Box<dyn EmbeddingStorage>
-    unimplemented!("TODO: implement open_temp_storage")
+    let path = format!("workshop_local_{}.json", Uuid::new_v4());
+    let storage = LocalFileStorage::new(path)?;
+    Ok(Box::new(storage))
 }
 
 pub fn store_dummy(storage: &mut Box<dyn EmbeddingStorage>, name: &str, embedding_len: usize) -> Result<String> {
