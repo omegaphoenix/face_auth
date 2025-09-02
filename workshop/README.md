@@ -12,7 +12,7 @@ Work through them in order.
 2. ex02_embeddings: build model and generate embeddings
 3. ex03_similarity: compute cosine similarity, thresholds
 4. ex04_storage_local: store/retrieve embeddings via local JSON storage
-5. ex05_retrieval: k-NN retrieval over stored embeddings
+5. ex05_retrieval: top_k retrieval based on cosine similarity
 
 # Face Authentication Workshop
 
