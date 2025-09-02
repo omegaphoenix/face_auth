@@ -102,41 +102,39 @@ impl LocalFileStorage {
 
 impl EmbeddingStorage for LocalFileStorage {
     fn store_embedding(&mut self, record: EmbeddingRecord) -> Result<()> {
-        if let Ok(mut guard) = self.data.lock() {
-            guard.insert(record.id.clone(), record);
-        }
-        self.save_data()?;
-        Ok(())
+        // TODO: Implement storage of embedding record
+        // Hint: You need to:
+        // 1. Lock the data mutex and insert the record using record.id as key
+        // 2. Save the data to file using self.save_data()
+        unimplemented!()
     }
 
     fn get_embedding(&self, id: &str) -> Result<Option<EmbeddingRecord>> {
-        if let Ok(guard) = self.data.lock() {
-            Ok(guard.get(id).cloned())
-        } else {
-            Ok(None)
-        }
+        // TODO: Implement retrieval of embedding by id
+        // Hint: You need to:
+        // 1. Lock the data mutex
+        // 2. Get the record by id and clone it if it exists
+        // 3. Return Ok(Some(record)) if found, Ok(None) if not found
+        unimplemented!()
     }
 
     fn get_all_embeddings(&self) -> Result<Vec<EmbeddingRecord>> {
-        if let Ok(guard) = self.data.lock() {
-            Ok(guard.values().cloned().collect())
-        } else {
-            Ok(Vec::new())
-        }
+        // TODO: Implement retrieval of all embeddings
+        // Hint: You need to:
+        // 1. Lock the data mutex
+        // 2. Collect all values from the HashMap into a Vec
+        // 3. Clone each record since we need to return owned data
+        unimplemented!()
     }
 
     fn delete_embedding(&mut self, id: &str) -> Result<bool> {
-        let deleted = if let Ok(mut guard) = self.data.lock() {
-            guard.remove(id).is_some()
-        } else {
-            false
-        };
-        
-        if deleted {
-            self.save_data()?;
-        }
-        
-        Ok(deleted)
+        // TODO: Implement deletion of embedding by id
+        // Hint: You need to:
+        // 1. Lock the data mutex and try to remove the record by id
+        // 2. Check if something was actually removed
+        // 3. If something was deleted, save the data to file
+        // 4. Return Ok(true) if deleted, Ok(false) if not found
+        unimplemented!()
     }
 }
 
