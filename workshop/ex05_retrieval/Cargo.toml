@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = { workspace = true }
+candle-core = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
 ex04_storage_local_solution = { workspace = true }

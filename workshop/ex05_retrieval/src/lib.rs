@@ -4,7 +4,7 @@ use ex03_similarity_solution::cosine_similarity;
 use ex04_storage_local_solution::{EmbeddingRecord, EmbeddingStorage};
 use std::collections::HashMap;
 use uuid::Uuid;
-
+use candle_core::{Tensor, Device};
 
 pub fn add_record(storage: &mut dyn EmbeddingStorage, name: &str, embedding: Vec<f32>) -> Result<String> {
     let record = EmbeddingRecord {
@@ -21,8 +21,8 @@ pub fn add_record(storage: &mut dyn EmbeddingStorage, name: &str, embedding: Vec
 }
 
 // Get top-k most similar embeddings to the query
-pub fn top_k(_storage: &dyn EmbeddingStorage, _query: &[f32], _k: usize) -> Result<Vec<(EmbeddingRecord, f32)>> {
-    unimplemented!("TODO: implement top_k. ")
+pub fn top_k(storage: &dyn EmbeddingStorage, query: &[f32], k: usize) -> Result<Vec<(EmbeddingRecord, f32)>> {
+    !unimplemented!("TODO: implement top_k. The function should return the top k most similar embeddings to the query.")
 }
 
 #[cfg(test)]
@@ -30,17 +30,29 @@ mod tests {
     use super::*;
     use ex04_storage_local_solution::open_temp_storage;
 
+    // Helper struct to ensure cleanup happens even if test fails
+    struct TempFileGuard {
+        path: String,
+    }
+    
+    impl Drop for TempFileGuard {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_file(&self.path);
+        }
+    }
+
     #[test]
     fn retrieval_returns_best_match_first() -> Result<()> {
         let (mut storage, path) = open_temp_storage()?;
+        let _guard = TempFileGuard { path };
+        
         let q = vec![1.0, 0.0, 0.0, 0.0];
         // close to q
         add_record(storage.as_mut(), "near", vec![0.9, 0.0, 0.0, 0.0])?;
         // far from q
         add_record(storage.as_mut(), "far", vec![0.0, 1.0, 0.0, 0.0])?;
         let res = top_k(storage.as_ref(), &q, 1)?;
-        // Clean up the temp file
-        let _ = std::fs::remove_file(&path);
+        
         assert_eq!(res.len(), 1);
         assert_eq!(res[0].0.name, "near");
  
@@ -50,6 +62,8 @@ mod tests {
     #[test]
     fn retrieval_sorts_by_similarity_descending() -> Result<()> {
         let (mut storage, path) = open_temp_storage()?;
+        let _guard = TempFileGuard { path };
+        
         let query = vec![1.0, 0.0, 0.0, 0.0];
         
         // Add multiple records with varying similarity to query
@@ -60,8 +74,7 @@ mod tests {
         add_record(storage.as_mut(), "opposite", vec![-1.0, 0.0, 0.0, 0.0])?; // cos_sim = -1.0
         
         let results = top_k(storage.as_ref(), &query, 5)?;
-        // Clean up the temp file
-        let _ = std::fs::remove_file(&path);
+        
         assert_eq!(results.len(), 5);
         assert_eq!(results[0].0.name, "perfect");
         assert_eq!(results[1].0.name, "good");  
@@ -80,6 +93,8 @@ mod tests {
     #[test]
     fn retrieval_respects_k_limit() -> Result<()> {
         let (mut storage, path) = open_temp_storage()?;
+        let _guard = TempFileGuard { path };
+        
         let query = vec![1.0, 0.0, 0.0];
         
         // Add 5 records
@@ -89,9 +104,6 @@ mod tests {
         let query_0 = top_k(storage.as_ref(), &query, 0)?;
         let query_2 = top_k(storage.as_ref(), &query, 2)?;
         let query_10 = top_k(storage.as_ref(), &query, 10)?;
-        
-        // Clean up the temp file
-        let _ = std::fs::remove_file(&path);
         
         // Test different k values
         assert_eq!(query_0.len(), 0);
@@ -103,11 +115,11 @@ mod tests {
     #[test]
     fn retrieval_handles_empty_storage() -> Result<()> {
         let (storage, path) = open_temp_storage()?;
+        let _guard = TempFileGuard { path };
+        
         let query = vec![1.0, 0.0, 0.0];
         
         let results = top_k(storage.as_ref(), &query, 5)?;
-        // Clean up the temp file
-        let _ = std::fs::remove_file(&path);
         assert_eq!(results.len(), 0);
 
         Ok(())
