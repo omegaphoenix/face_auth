@@ -19,6 +19,7 @@ mod tests {
     use candle_nn::Func;
     use ex01_image_processing_solution::image_with_std_mean;
     use ex02_embeddings_solution::{build_model, compute_embedding};
+    use candle_core::Tensor;
 
     #[test]
     fn same_person_higher_similarity() -> Result<()> {
@@ -44,6 +45,20 @@ mod tests {
         assert!(s_same > s_diff);
         Ok(())
     }
+
+    #[test]
+    fn test_normalize_l2_unit_norm() -> Result<()> {
+        // Create a simple tensor
+        let v = Tensor::from_vec(vec![3f32, 4f32], (1, 2), &candle_core::Device::Cpu)?;
+        let normed = normalize_l2(&v)?;
+        // Compute the L2 norm of the normalized vector
+        let norm = normed.sqr()?.sum_all()?.to_vec0::<f32>()?;
+        // Should be (close to) 1.0
+        assert!((norm - 1.0).abs() < 1e-5, "L2 norm is not 1, got {}", norm);
+        Ok(())
+    }
 }
+
+
 
 
