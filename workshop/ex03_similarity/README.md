@@ -121,18 +121,11 @@ cargo test
 - **Image Quality**: Blurry or low-resolution images affect accuracy
 - **Pose Variations**: Profile vs frontal views impact similarity
 
-### Production Optimizations:
-- **Batch Processing**: Compute similarities for multiple pairs at once
-- **Caching**: Store normalized embeddings to avoid repeated normalization
-- **Thresholding**: Use adaptive thresholds based on use case requirements
-
 ## Next Steps
 
 After completing this exercise, you'll be ready to:
 - Build storage systems for face embeddings (Exercise 04)
 - Implement similarity search and retrieval (Exercise 05)
-- Understand how face authentication systems make decisions
-- Optimize similarity computation for production use
 
 ## References
 
