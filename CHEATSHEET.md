@@ -317,8 +317,7 @@ let id = uuid::Uuid::new_v4().to_string();
 ## ⚠️ Common Pitfalls
 
 1. **Tensor Shapes**: Always check tensor dimensions before operations
-2. **Device Compatibility**: Ensure all tensors are on the same device
-3. **Data Types**: Be consistent with DType (F16 vs F32)
-4. **Error Handling**: Use `?` operator and proper Result types
-5. **Empty Files**: Always handle empty JSON files in deserialization
-6. **Path Handling**: Use proper path validation for file operations
+2. **Data Types**: Be consistent with DType (F16 vs F32)
+3. **Error Handling**: Use `?` operator and proper Result types
+4. **Empty Files**: Always handle empty JSON files in deserialization
+5. **Path Handling**: Use proper path validation for file operations
