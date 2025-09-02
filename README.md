@@ -26,7 +26,7 @@ Face Auth is a modular face authentication system consisting of three main compo
 │   Camera Server │ ◄─────────────── │   Face Auth App  │
 │   (Python)      │                  │   (Rust)         │
 │                 │                  │                  │
-│ • FastAPI       │                  │ • Face Detection │
+│ • FastAPI       │                  │ 
 │ • OpenCV        │                  │ • Embedding Gen  │
 │ • libcamera     │                  │ • Authentication │
 └─────────────────┘                  └──────────────────┘
