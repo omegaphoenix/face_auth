@@ -1,14 +1,12 @@
 # Exercise 06: Complete Face Authentication System
 
-This is the final exercise where you'll build a complete face authentication system by applying everything you've learned in exercises 1-5. The application contains **TODO markers** that correspond to the concepts and implementations you should have mastered in the previous exercises.
+This exercise integrates all components from exercises 1-5 into a working face authentication system. The application contains **TODO markers** where you'll implement the functionality you've learned.
 
 ## 🎯 Learning Objectives
 
-By completing this exercise, you will:
-- **Integrate** all components from exercises 1-5 into a working application
-- **Apply** image processing, embeddings, similarity computation, and storage concepts
-- **Build** a production-ready face authentication system
-- **Understand** how all the pieces fit together in a real application
+- Integrate image processing, embeddings, similarity computation, and storage
+- Build a functional face authentication system
+- Understand how components work together in a complete application
 
 ## 📚 Prerequisites
 
@@ -44,40 +42,28 @@ This application contains **TODO sections** that map directly to your previous l
 - Similarity search across stored embeddings
 - Top-k retrieval for face matching
 
-## 🚧 Current Implementation Status
+## 🚧 Implementation Status
 
-**This exercise contains TODO markers** where you need to implement the functionality you learned in exercises 1-5. The application framework is provided, but the core implementations are missing and marked with detailed TODO comments.
+The application framework is provided with TODO markers where you need to implement functionality from exercises 1-5:
 
-### What's Provided:
-- ✅ **Application structure** and main loop
-- ✅ **Camera integration** and video streaming
-- ✅ **Configuration management** and module organization
-- ✅ **Function signatures** and type definitions
-- ✅ **Detailed TODO instructions** for each exercise
+- **Image processing** (Exercise 01): `image_with_std_mean` function
+- **Model loading & embeddings** (Exercise 02): `build_model` and `compute_embeddings` functions  
+- **Similarity computation** (Exercise 03): `normalize_l2` and `cosine_similarity` functions
+- **Storage system** (Exercise 04): All `LocalFileVectorStorage` methods
 
-### What You Need to Implement:
-- ❌ **Image processing** (Exercise 01): `image_with_std_mean` function
-- ❌ **Model loading & embeddings** (Exercise 02): `build_model` and `compute_embeddings` functions  
-- ❌ **Similarity computation** (Exercise 03): `normalize_l2` and `cosine_similarity` functions
-- ❌ **Storage system** (Exercise 04): All `LocalFileVectorStorage` methods
-- 🔧 **Similarity search** (Exercise 05): Optional optimization concepts (already functional)
-
-### Learning Approach:
-
-1. **Follow the TODOs**: Each TODO comment provides detailed instructions and hints
-2. **Reference Previous Exercises**: Use your implementations from exercises 1-5
-3. **Test Incrementally**: Implement one exercise at a time and test functionality
-4. **Integration Focus**: See how individual components work together in a real application
+**Implementation approach:**
+1. Follow the TODO comments and reference your previous exercises
+2. Implement incrementally and test each component
+3. See how individual pieces work together in a complete application
 
 ## 🚀 Application Features
 
-Once completed, your system will provide:
-
-- **Face Embedding Generation**: Uses ConvNeXt model to generate high-quality face embeddings
-- **Local File Storage**: Stores embeddings in JSON format for simplicity
-- **Real-time Face Registration**: Capture and store face embeddings from video stream
-- **User Authentication**: Compare captured faces with stored embeddings
-- **Configurable**: Easy configuration via YAML file
+The completed system provides:
+- Face embedding generation using ConvNeXt model
+- Local file storage for embeddings in JSON format
+- Real-time face registration from video stream
+- User authentication via face comparison
+- YAML-based configuration
 
 ## 🔍 Finding and Completing TODOs
 
@@ -303,49 +289,93 @@ src/
 - Ensure write permissions to the configured file path
 - Check that the directory exists or can be created
 
+## 🚀 Extra Mile: Advanced Enhancements
+
+### Current Limitation
+This implementation focuses on **face embeddings only** - it assumes input images already contain properly cropped and aligned faces. In real-world scenarios, you need **face detection** as a preprocessing step.
+
+### Enhancement Option 1: Complete Face Authentication Pipeline
+
+Integrate face detection to build a complete pipeline:
+
+1. **Add Face Detection**: Use [rustface](https://github.com/atomashpolskiy/rustface) - a Rust implementation of SeetaFace detection
+   ```toml
+   [dependencies]
+   rustface = "0.1"
+   ```
+
+2. **Pipeline Flow**:
+   ```
+   Raw Image → Face Detection → Face Cropping → Face Embeddings → Authentication
+   ```
+
+3. **Benefits**:
+   - Handle images with multiple faces or no faces
+   - Automatic face cropping and alignment
+   - More robust real-world deployment
+   - Better user experience (users don't need to manually align faces)
+
+**Implementation Steps**:
+- Add rustface dependency
+- Implement face detection in image preprocessing
+- Add face cropping and alignment
+- Handle edge cases (no faces, multiple faces)
+
+### Enhancement Option 2: Production-Grade Vector Storage
+
+Replace JSON storage with [Qdrant](https://qdrant.tech/) vector database:
+
+1. **Add Qdrant Integration**:
+   ```toml
+   [dependencies]
+   qdrant-client = "1.0"
+   ```
+
+2. **Benefits Over JSON Storage**:
+   - **Scalability**: Handle millions of face embeddings
+   - **Performance**: Optimized vector similarity search
+   - **Advanced Features**: Filtering, clustering, hybrid search
+   - **Production Ready**: Built for high-throughput applications
+
+3. **Implementation**:
+   - Replace `LocalFileVectorStorage` with `QdrantVectorStorage`
+   - Implement the same `VectorStorage` trait
+   - Add Qdrant configuration to `config.yaml`
+   - Use Qdrant's native similarity search instead of manual iteration
+
+**Why This Matters**: JSON storage works for learning but doesn't scale. Production face authentication systems need vector databases to handle thousands of users efficiently.
+
+### Choose Your Challenge
+- **Option 1** for computer vision enthusiasts who want to understand the complete pipeline
+- **Option 2** for backend developers interested in scalable storage solutions
+- **Both** for a production-ready system!
+
 ## 📈 Learning Progression
 
-This exercise represents the culmination of your face authentication journey:
+This exercise integrates concepts from all previous exercises:
+- **Exercise 01**: Image preprocessing for neural network input
+- **Exercise 02**: Model loading and face embedding generation
+- **Exercise 03**: Similarity computation for face matching  
+- **Exercise 04**: Data persistence for user storage
+- **Exercise 05**: Efficient similarity search
 
-### Exercise 01 → Image Processing Pipeline
-Your image normalization skills enable the system to prepare camera input for the neural network.
+## 🎓 Key Learning Outcomes
 
-### Exercise 02 → Embedding Generation  
-Your model loading and embedding computation create the numerical representations that make face comparison possible.
-
-### Exercise 03 → Similarity Matching
-Your cosine similarity implementation determines whether two faces belong to the same person.
-
-### Exercise 04 → Data Persistence
-Your storage system remembers users between application sessions.
-
-### Exercise 05 → Efficient Search
-Your retrieval algorithms quickly find matching faces in the database.
-
-### Exercise 06 → Complete Integration
-All components work together to create a functional face authentication system!
-
-## 🎓 What You've Learned
-
-By completing this workshop series, you now understand:
-
-- **Computer Vision Fundamentals**: Image preprocessing, normalization, and neural network input preparation
-- **Deep Learning Models**: Loading and using pre-trained ConvNeXt models for feature extraction
-- **Vector Mathematics**: Cosine similarity, L2 normalization, and high-dimensional vector operations
-- **Data Storage**: Persistent storage systems for embedding vectors and metadata
-- **Search Algorithms**: Similarity search and k-nearest neighbor retrieval
-- **System Integration**: Combining multiple components into a cohesive application
-- **Production Considerations**: Performance, scalability, and real-world deployment factors
+You now understand:
+- Computer vision fundamentals and image preprocessing
+- Deep learning model integration for feature extraction
+- Vector mathematics for similarity computation
+- Storage systems for embedding persistence
+- System integration and production considerations
 
 ## 🚀 Next Steps
 
-With this foundation, you're ready to:
-
-- **Explore Advanced Models**: Try different embedding models (FaceNet, ArcFace, etc.)
-- **Scale to Production**: Integrate with vector databases like Qdrant or pgvector
-- **Add Security Features**: Implement liveness detection and anti-spoofing measures
-- **Optimize Performance**: Add GPU acceleration and batch processing
-- **Build Applications**: Create mobile apps, web services, or desktop applications
+Continue your journey by:
+- Exploring advanced embedding models (FaceNet, ArcFace)
+- Scaling with vector databases (Qdrant, pgvector)
+- Adding security features (liveness detection)
+- Optimizing performance (GPU acceleration)
+- Building production applications
 
 ## Contributing
 
