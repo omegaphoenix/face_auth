@@ -3,15 +3,12 @@ name = "ex05_retrieval"
 version = "0.1.0"
 edition = "2021"
 
-[profile.dev.package.gemm-f16]
-opt-level = 3
-
 [dependencies]
-anyhow = "1.0"
-chrono = "0.4.41"
-uuid = { version = "1.0", features = ["v4"] }
-ex04_storage_local_solution = { path = "../solution/ex04_storage_local" }
-ex03_similarity_solution = { path = "../solution/ex03_similarity" }
+anyhow = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+ex04_storage_local_solution = { workspace = true }
+ex03_similarity_solution = { workspace = true }
 
 
 

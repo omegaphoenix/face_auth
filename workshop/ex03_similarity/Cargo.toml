@@ -3,16 +3,13 @@ name = "ex03_similarity"
 version = "0.1.0"
 edition = "2021"
 
-[profile.dev.package.gemm-f16]
-opt-level = 3
-
 [dependencies]
-anyhow = "1.0"
-candle-nn = "0.9.1"
-candle-core = "0.9.1"
-face-auth = { path = "../../app" }
-image = "0.25.6"
-ex02_embeddings_solution = { path = "../solution/ex02_embeddings" }
-ex01_image_processing_solution = { path = "../solution/ex01_image_processing" }
+anyhow = { workspace = true }
+candle-nn = { workspace = true }
+candle-core = { workspace = true }
+face-auth = { workspace = true }
+image = { workspace = true }
+ex02_embeddings_solution = { workspace = true }
+ex01_image_processing_solution = { workspace = true }
 
 

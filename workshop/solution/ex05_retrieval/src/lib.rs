@@ -1,5 +1,6 @@
 use anyhow::Result;
-use ex03_similarity_solution::cosine_similarity_vec;
+use candle_core::{Tensor, Device};
+use ex03_similarity_solution::cosine_similarity;
 use ex04_storage_local_solution::{EmbeddingRecord, EmbeddingStorage};
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -8,9 +9,11 @@ use uuid::Uuid;
 pub fn search_similar(storage: &dyn EmbeddingStorage, embedding: &[f32], limit: usize) -> Result<Vec<(EmbeddingRecord, f32)>> {
     let records = storage.get_all_embeddings()?;
     let mut results = Vec::new();
+    let embedding_tensor = Tensor::from_slice(embedding, (1, embedding.len()), &Device::Cpu)?;
     
     for record in records {
-        let similarity = cosine_similarity_vec(embedding, &record.embedding);
+        let record_embedding_tensor = Tensor::from_slice(&record.embedding, (1, record.embedding.len()), &Device::Cpu)?;
+        let similarity = cosine_similarity(&embedding_tensor, &record_embedding_tensor)?;
         results.push((record, similarity));
     }
     

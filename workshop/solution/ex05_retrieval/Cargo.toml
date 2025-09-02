@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0"
-chrono = { version = "0.4", features = ["serde"] }
-ex03_similarity = { path = "../ex03_similarity" }
-ex04_storage_local = { path = "../ex04_storage_local" }
-uuid = { version = "1.0", features = ["v4"] }
+anyhow = { workspace = true }
+chrono = { workspace = true }
+candle-core = { workspace = true }
+
+ex03_similarity_solution = { path = "../ex03_similarity" }
+ex04_storage_local_solution = { path = "../ex04_storage_local" }
+uuid = { workspace = true }
