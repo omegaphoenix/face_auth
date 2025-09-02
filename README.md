@@ -42,15 +42,15 @@ Face Auth is a modular face authentication system consisting of three main compo
 ## Quick Start
 
 ```bash
+git clone https://github.com/Radu1999/face_auth.git
 cd face_auth
-git pull
 cd workshop
 cargo build
 ```
 ### 1. Setup Camera Server
 
 ```bash
-cd camera_server
+cd ~/WORKSHOP/camera_server
 source venv/bin/activate
 
 # Start the camera server
