@@ -51,11 +51,7 @@ Face Auth is a modular face authentication system consisting of three main compo
 
 ```bash
 cd camera_server
-pip install -r requirements.txt
-
-# Configure camera source (optional)
-cp config.env.example config.env
-# Edit config.env to set your preferred camera
+source venv/bin/activate
 
 # Start the camera server
 uvicorn camera_stream_api:app --host 0.0.0.0 --port 8000
