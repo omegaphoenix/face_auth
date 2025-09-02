@@ -212,8 +212,5 @@ For production systems, consider:
 
 After completing this exercise, you'll be ready to:
 - Implement similarity search and retrieval (Exercise 05)
-- Understand how storage enables face authentication
-- Build more sophisticated storage solutions
-- Integrate with production databases
 
 This storage foundation is crucial for the face authentication system's ability to persist and retrieve user embeddings efficiently.
