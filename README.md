@@ -1,7 +1,6 @@
 # Face Auth
 
-A comprehensive face authentication system built with Rust and Python that combines real-time camera streaming with advanced face recognition capabilities.
-
+A face authentication system built with Rust.
 ## Overview
 
 Face Auth is a modular face authentication system consisting of three main components:
@@ -148,7 +147,7 @@ A FastAPI-based streaming server that provides camera access with multiple sourc
 - `GET /camera_info` - Detailed camera configuration
 - `GET /switch_camera?source={opencv|libcamera}` - Switch camera source
 
-### Workshop (Educational)
+### Workshop
 
 A collection of progressive exercises designed to teach face recognition concepts and implementation.
 
@@ -218,7 +217,7 @@ Face Auth/
 │   ├── camera_stream_api.py # FastAPI application
 │   ├── requirements.txt    # Python dependencies
 │   └── config.env         # Environment configuration
-└── workshop/              # Educational exercises
+└── workshop/              # Workshop exercises
     ├── ex01_image_processing/ # Exercise 1: Image loading and normalization
     ├── ex02_embeddings/       # Exercise 2: Face embedding generation
     ├── ex03_similarity/       # Exercise 3: Cosine similarity computation
@@ -298,7 +297,6 @@ cargo run --example storage_demo
 
 1. **Faster inference:**
    - Use release build: `cargo run --release`
-   - Consider GPU acceleration if available
    - Adjust capture interval in config
 
 2. **Memory usage:**
@@ -306,13 +304,6 @@ cargo run --example storage_demo
    - Use appropriate embedding dimensions
    - Consider batch processing for multiple users
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
 
 ## License
 
