@@ -121,7 +121,6 @@ stream:
 
 model:
   name: "timm/convnext_atto.d2_in1k"
-  embedding_size: 768
 ```
 
 ### Camera Server (Python)
