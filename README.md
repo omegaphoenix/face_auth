@@ -41,12 +41,12 @@ Face Auth is a modular face authentication system consisting of three main compo
 
 ## Quick Start
 
-### Prerequisites
-
-- **Rust** (1.70+) - [Install Rust](https://rustup.rs/)
-- **Python** (3.8+) with pip
-- **Camera** - USB webcam, built-in camera, or Raspberry Pi camera
-
+```bash
+cd face_auth
+git pull
+cd workshop
+cargo build
+```
 ### 1. Setup Camera Server
 
 ```bash
@@ -63,14 +63,10 @@ uvicorn camera_stream_api:app --host 0.0.0.0 --port 8000
 cd app
 
 # Build the application
-cargo build --release
-
-# Configure storage (optional)
-cp config.yaml.example config.yaml
-# Edit config.yaml to set your storage preferences
+cargo build
 
 # Run the application
-cargo run --release
+cargo run
 ```
 
 ### 3. Usage
@@ -159,7 +155,11 @@ A collection of progressive exercises designed to teach face recognition concept
 - Documentation and explanations
 - Progressive difficulty building core concepts
 
-## Installation & Configuration
+## Running tests 
+```bash
+cd ex0x..
+cargo test
+```
 
 ### Storage
 
@@ -171,29 +171,6 @@ Face embeddings are stored locally in JSON format (`embeddings.json` by default)
 - Human-readable format for debugging
 - Suitable for development, testing, and small-scale deployments
 
-### Camera Configuration
-
-#### OpenCV (Default)
-Works with most USB cameras and webcams across all platforms.
-
-```bash
-export CAMERA_SOURCE=opencv
-export OPENCV_DEVICE=0
-```
-
-#### libcamera (Raspberry Pi)
-Optimized for Raspberry Pi cameras with better performance.
-
-```bash
-# Install on Raspberry Pi
-sudo apt update
-sudo apt install python3-picamera2
-
-export CAMERA_SOURCE=libcamera
-export LIBCAMERA_DEVICE=/dev/video0
-```
-
-## Development
 
 ### Project Structure
 
@@ -221,57 +198,6 @@ Face Auth/
     └── solution/              # Reference solutions for all exercises
 ```
 
-### Building from Source
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd Face\ Auth
-
-# Setup Python virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r camera_server/requirements.txt
-
-# Build Rust application
-cd app
-cargo build --release
-```
-
-### Testing
-
-```bash
-# Test camera setup
-cd camera_server
-python test_camera.py
-
-# Test face auth app
-cd app
-cargo test
-cargo run --example storage_demo
-```
-
-## Troubleshooting
-
-### Camera Issues
-
-1. **Camera not detected:**
-   ```bash
-   # Test camera access
-   python camera_server/test_camera.py
-   ```
-
-2. **Permission errors:**
-   ```bash
-   # Add user to video group (Linux)
-   sudo usermod -a -G video $USER
-   ```
-
-3. **Raspberry Pi camera issues:**
-   ```bash
-   # Check camera detection
-   vcgencmd get_camera
-   ```
 
 ### Authentication Issues
 
@@ -280,11 +206,8 @@ cargo run --example storage_demo
    - Capture multiple face samples during registration
    - Keep face centered and looking at camera
 
-2. **Storage issues:**
-   - Check file permissions for local storage
-   - Verify the storage directory exists or can be created
 
-3. **Video stream errors:**
+2. **Video stream errors:**
    - Verify camera server is running on correct port
    - Check network connectivity between components
 
@@ -296,8 +219,6 @@ cargo run --example storage_demo
 
 2. **Memory usage:**
    - Limit number of face samples during capture
-   - Use appropriate embedding dimensions
-   - Consider batch processing for multiple users
 
 
 ## License
