@@ -19,7 +19,7 @@ pub fn compute_embeddings(model: &Func, image: &Tensor) -> Result<Tensor> {
     Ok(embeddings.to_dtype(DType::F32)?)
 }
 
-pub fn build_model(model_name: &str) -> Result<Func> {
+pub fn build_model(model_name: &str) -> Result<Func<'static>> {
     let device = &Device::Cpu;
     let model_file = {
         let api = hf_hub::api::sync::Api::new()?;
@@ -27,7 +27,7 @@ pub fn build_model(model_name: &str) -> Result<Func> {
         api.get("model.safetensors")?
     };
 
-    let vb = unsafe { VarBuilder::from_mmaped_safetensors(&[model_file], DType::F16, device)? };
+    let vb = unsafe { VarBuilder::from_mmaped_safetensors(&[model_file], DType::F16, &device)? };
     let model = convnext::convnext_no_final_layer(&convnext::Config::atto(), vb)?;
 
     Ok(model)

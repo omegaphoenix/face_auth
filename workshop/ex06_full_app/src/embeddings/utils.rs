@@ -28,7 +28,7 @@ pub fn compute_embeddings(model: &Func, image: &Tensor) -> Result<Tensor> {
 }
 
 pub fn build_model(model_name: &str) -> Result<Func> {
-    // TODO: Exercise 02 - ConvNeXt Model Loading
+    // TODO: Exercise 02 - ConvNeXt Model Loading - Use F16 data type
     //
     // Implement the model loading function that:
     // 1. Downloads the ConvNeXt model from Hugging Face Hub
