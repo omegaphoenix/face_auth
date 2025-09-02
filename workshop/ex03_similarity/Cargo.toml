@@ -1,13 +1,12 @@
 [package]
 name = "ex03_similarity"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 anyhow = { workspace = true }
 candle-nn = { workspace = true }
 candle-core = { workspace = true }
-face-auth = { workspace = true }
 image = { workspace = true }
 ex02_embeddings_solution = { workspace = true }
 ex01_image_processing_solution = { workspace = true }

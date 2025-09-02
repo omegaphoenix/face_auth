@@ -10,7 +10,7 @@ fn normalize_l2(_v: &Tensor) -> Result<Tensor> {
 }
 /// Exercise: Implement cosine similarity using the app utilities and verify thresholds.
 pub fn cosine_similarity(_emb_a: &Tensor, _emb_b: &Tensor) -> Result<f32> {
-    unimplemented!("TODO: use face_auth::embeddings::embeddings::compute_similarity")
+    unimplemented!("TODO: implement cosine similarity")
 }
 
 #[cfg(test)]

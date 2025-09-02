@@ -140,11 +140,12 @@ impl EmbeddingStorage for LocalFileStorage {
     }
 }
 
-pub fn open_temp_storage() -> Result<Box<dyn EmbeddingStorage>> {
+pub fn open_temp_storage() -> Result<(Box<dyn EmbeddingStorage>, String)> {
     let path = format!("workshop_local_{}.json", Uuid::new_v4());
-    let storage = LocalFileStorage::new(path)?;
-    Ok(Box::new(storage))
+    let storage = LocalFileStorage::new(path.clone())?;
+    Ok((Box::new(storage), path))
 }
+
 
 pub fn store_dummy(storage: &mut Box<dyn EmbeddingStorage>, name: &str, embedding_len: usize) -> Result<String> {
     // Create an EmbeddingRecord with the given name and an embedding of the specified length
@@ -178,9 +179,24 @@ pub fn store_dummy(storage: &mut Box<dyn EmbeddingStorage>, name: &str, embeddin
 mod tests {
     use super::*;
 
+    // Helper struct to ensure cleanup happens even if test fails
+    struct TempFileGuard {
+        path: String,
+    }
+    
+    impl Drop for TempFileGuard {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_file(&self.path);
+        }
+    }
+
     #[test]
     fn storage_test() -> Result<()> {
-        let mut storage = open_temp_storage()?;
+        let (mut storage, file_path) = open_temp_storage()?;
+        println!("File path: {}", file_path);
+        
+        // Create a guard that will automatically clean up the file when it goes out of scope
+        let _guard = TempFileGuard { path: file_path.clone() };
 
         // Store two dummy embeddings
         let id1 = store_dummy(&mut storage, "alice", 8)?;
@@ -229,6 +245,7 @@ mod tests {
         let deleted_none = storage.delete_embedding("nonexistent_id")?;
         assert!(!deleted_none);
 
+        // File will be automatically cleaned up when _guard goes out of scope
         Ok(())
     }
 }
