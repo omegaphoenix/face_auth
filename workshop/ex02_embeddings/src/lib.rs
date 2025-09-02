@@ -19,6 +19,23 @@ pub fn compute_embedding(_model: &Func, _image: &Tensor) -> Result<Tensor> {
 mod tests {
     use super::*;
     use ex01_image_processing_solution::image_with_std_mean;
+    use candle_core::Tensor;
+
+    #[test]
+    fn build_model_works() -> Result<()> {
+        let model = build_model()?;
+        // Create a dummy input tensor with the expected shape (1, 3, 224, 224)
+        let dummy = Tensor::zeros((1, 3, 224, 224), candle_core::DType::F32, &candle_core::Device::Cpu)?;
+        // Try a forward pass
+        let output = model.forward(&dummy)?;
+        // Check output shape is [1, 768]
+        let dims = output.dims();
+        assert_eq!(dims.len(), 2, "Output tensor should have 2 dimensions");
+        assert_eq!(dims[0], 1, "Batch dimension should be 1");
+        println!("Output shape: {:?}", dims);
+        assert_eq!(dims[1], 320, "Embedding dimension should be 768");
+        Ok(())
+    }
 
     #[test]
     fn embedding_computes() -> Result<()> {
@@ -30,8 +47,7 @@ mod tests {
         let img = image_with_std_mean(&image, 224, &imagenet_mean, &imagenet_std)?;
         let emb = compute_embedding(&model, &img)?;
         assert_eq!(emb.dims()[0], 1);
+        assert_eq!(emb.dims()[1], 320, "Embedding dimension should be 768");
         Ok(())
     }
 }
-
-
