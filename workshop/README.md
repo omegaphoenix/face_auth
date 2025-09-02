@@ -14,6 +14,9 @@ Work through them in order.
 4. ex04_storage_local: store/retrieve embeddings via local JSON storage
 5. ex05_retrieval: top_k retrieval based on cosine similarity
 
+## CHEATSHEET
+First, check the cheatsheet. It should contain useful information for implementation.
+
 # Face Authentication Workshop
 
 A comprehensive, hands-on workshop for learning face authentication systems using Rust, covering everything from model instantiation to complete system integration.
